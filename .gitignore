@@ -4,3 +4,4 @@ _opam/
 .merlin
 Session.vim
 inferno.install
+test_input

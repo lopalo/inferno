@@ -1,42 +1,50 @@
-type name = Name of string [@@unboxed]
+type name = {name : string} [@@unboxed]
 
-module type Meta = sig
-  type 'a t
-end
+type 'a t =
+  | Name of name
+  | TypeName of name
+  | Lambda of name * 'a
+  | Application of 'a * 'a
+  | Unit
+  | Int of int
+  | Float of float
+  | Bool of bool
 
-module Expression (Meta : Meta) = struct
-  type t = expr Meta.t
+type untyped =
+  { expr : untyped t;
+    source_pos : Lexing.position }
 
-  and expr =
-    | Name of name
-    | Lambda of t * t
-    | Application of t * t
-    | Int of int
-    | Bool of int
-end
+type type_tag =
+  | Const of string
+  | Operator of type_tag list
+  | Generic of int
 
-type source_location =
-  { file_name : string;
-    line_num : int;
-    column_nub : int }
+type typed =
+  { expr : typed t;
+    source_pos : Lexing.position;
+    tag : type_tag }
 
-module UntypedMeta = struct
-  type 'a t =
-    { expr : 'a;
-      source_loc : source_location }
-end
+let fmt = Printf.sprintf
 
-module TypedMeta = struct
-  type type_tag =
-    | Const of string
-    | Operator of type_tag list
-    | Generic of int
+let flatten_application expression =
+  let rec f ({expr; _} as e : untyped) =
+    match expr with
+    | Application (func, arg) -> arg :: f func
+    | _ -> [e]
+  in
+  f expression |> List.rev
 
-  type 'a t =
-    { expr : 'a;
-      source_loc : source_location;
-      tag : type_tag }
-end
-
-module Untyped = Expression (UntypedMeta)
-module Typed = Expression (TypedMeta)
+let rec to_string ?(with_type = false) ({expr; _} as e : untyped) =
+  (* TODO: use with_type flag  *)
+  match expr with
+  | Name {name} -> name
+  | TypeName {name} -> name
+  | Lambda (parameter, result) ->
+      fmt "(\\%s -> %s)" parameter.name (to_string ~with_type result)
+  | Application _ ->
+      let exps = flatten_application e |> List.map (to_string ~with_type) in
+      "(" ^ String.concat " " exps ^ ")"
+  | Unit -> "()"
+  | Int i -> Int.to_string i
+  | Float f -> Float.to_string f
+  | Bool b -> Bool.to_string b

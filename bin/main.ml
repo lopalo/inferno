@@ -1,4 +1,38 @@
-let main () =
+open Inferno
+
+let fmt = Printf.sprintf
+
+let position (lexbuf : Lexing.lexbuf) =
+  let pos = lexbuf.lex_curr_p in
+  fmt "%s:%d:%d" pos.pos_fname pos.pos_lnum (pos.pos_cnum - pos.pos_bol)
+
+let parse_and_print file_name channel =
+  let lexbuf = Lexing.from_channel channel in
+  lexbuf.lex_curr_p <- {lexbuf.lex_curr_p with pos_fname = file_name};
+  try
+    match Parser.main Lexer.read lexbuf with
+    | Some expression -> Expression.to_string expression |> print_endline
+    | None -> ()
+  with
+  | Lexer.Error msg -> fmt "%s: %s" (position lexbuf) msg |> print_endline
+  | Parser.Error -> fmt "%s: syntax error" (position lexbuf) |> print_endline
+
+let () =
+  let file_name = ref None in
+  let handler fname =
+    match !file_name with
+    | None -> file_name := Some fname
+    | Some _ -> raise (Arg.Bad "accepts exactly one SOURCE_FILE")
+  in
+  let usage = "inferno SOURCE_FILE" in
+  Arg.parse [] handler usage;
+  match !file_name with
+  | None -> Arg.usage [] usage
+  | Some fname ->
+      let ch = open_in fname in
+      parse_and_print fname ch; close_in ch
+
+let type_escape_test () =
   (* TODO: delete  *)
   let open Inferno.TypeEnvironment in
   let u = function
@@ -31,5 +65,3 @@ let main () =
   |> print_string;
   print_newline ();
   print_endline "ZZZZ!!!"
-
-let () = main ()
