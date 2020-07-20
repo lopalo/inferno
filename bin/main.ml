@@ -19,15 +19,22 @@ let parse_and_print file_name channel =
 
 let () =
   let file_name = ref None in
+  (* TODO: use these flags *)
+  let show_types = ref false in
+  let execute = ref false in
   let handler fname =
     match !file_name with
     | None -> file_name := Some fname
     | Some _ -> raise (Arg.Bad "accepts exactly one SOURCE_FILE")
   in
+  let specs =
+    [ ("-types", Arg.Set show_types, "Annotate expressions with infered types");
+      ("-exec", Arg.Set execute, "Execute code") ]
+  in
   let usage = "inferno SOURCE_FILE" in
-  Arg.parse [] handler usage;
+  Arg.parse specs handler usage;
   match !file_name with
-  | None -> Arg.usage [] usage
+  | None -> Arg.usage specs usage
   | Some fname ->
       let ch = open_in fname in
       parse_and_print fname ch; close_in ch
