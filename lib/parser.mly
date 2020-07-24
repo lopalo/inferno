@@ -26,7 +26,7 @@ let wrap expression position =
 %nonassoc LEFT_BRACKET
 %left APPLICATION
 
-%start <untyped option> main
+%start <parsed option> main
 
 %%
 
@@ -41,7 +41,7 @@ expr:
   | v = value {Value v}
   | LEFT_BRACKET; e = expr; RIGHT_BRACKET {e}
   | n = NAME {Name {name=n}}
-  | tn = TYPE_NAME {TypeName {name=tn}}
+  | tn = TYPE_NAME {Name {name=tn}}
   | LAMBDA; parameter = NAME; parameters = NAME*; ARROW; result = expression
     { let rec lambda = function
         | param :: params ->

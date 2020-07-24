@@ -1,40 +1,22 @@
-(* 'scope is a phantom type *)
+(* 'env is a phantom type *)
 
-type 'scope type_name = private {type_name : string} [@@unboxed]
+type 'env var_id = private {var_id : int} [@@unboxed]
 
-type 'scope var_id = private {var_id : int} [@@unboxed]
+type 'env t
 
-type level
+type level = {level : int} [@@unboxed]
 
-type 'scope t
+type 'env ty =
+  | Constant of Core.type_name
+  | Operator of Core.type_name * 'env ty list
+  | Variable of 'env var ref
 
-type 'scope expression_type =
-  | Const of 'scope type_name
-  | Operator of 'scope expression_type list
-  | Var of 'scope var_ref
+and 'env var =
+  | Unbound of 'env var_id * level
+  | Bound of 'env ty
 
-and 'scope var_ref
+type 'a computation = {computation : 'env. 'env t -> 'a} [@@unboxed]
 
-and 'scope var =
-  | Unbound of 'scope var_id * level
-  | Bound of 'scope expression_type
-  | Generic of 'scope var_id
-
-type 'a computation = {computation : 'scope. 'scope t -> 'a} [@@unboxed]
-
-val const : string -> 'scope expression_type
-
-val arrow :
-  'scope expression_type -> 'scope expression_type -> 'scope expression_type
-
-val new_unbound_var : 'scope t -> 'scope var_ref
-
-val new_generic_var : 'scope t -> 'scope var
-
-val assign : 'scope var_ref -> 'scope var -> unit
-
-val deref : 'scope var_ref -> 'scope var
-
-val with_next_level : 'scope t -> ('scope t -> unit) -> unit
+val next_var_id : 'env t -> 'env var_id
 
 val run : 'a computation -> 'a

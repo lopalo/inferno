@@ -2,9 +2,10 @@ open Inferno
 
 let fmt = Printf.sprintf
 
-let position (lexbuf : Lexing.lexbuf) =
-  let pos = lexbuf.lex_curr_p in
+let string_of_position (pos : Lexing.position) =
   fmt "%s:%d:%d" pos.pos_fname pos.pos_lnum (pos.pos_cnum - pos.pos_bol)
+
+let position (lexbuf : Lexing.lexbuf) = string_of_position lexbuf.lex_curr_p
 
 let parse_and_print file_name channel =
   let lexbuf = Lexing.from_channel channel in
@@ -42,29 +43,25 @@ let () =
 let type_escape_test () =
   (* TODO: delete  *)
   let open Inferno.TypeEnvironment in
-  let u = function
-    | Unbound (vid, _) -> vid.var_id
-    | _ -> 100000
-  in
-  let foo e = e |> new_unbound_var |> deref |> u in
+  let u {var_id} = var_id in
+  let foo e = e |> next_var_id |> u in
   run {computation = (fun e -> e |> foo |> succ)} |> print_int;
   print_newline ();
   (* Harmful functions *)
   (* run {computation = (fun e -> e)} |> ignore; *)
-  (* run {computation = (fun e -> e |> new_unbound_var)} |> ignore; *)
+  (* run {computation = (fun e -> e |> next_var_id)} |> ignore; *)
   (* run *)
   (*   { computation = *)
   (*       (fun e -> *)
-  (*         let v = new_unbound_var e in *)
-  (*         run *)
-  (*           { computation = *)
-  (*               (fun e' -> e' |> new_unbound_var |> deref |> assign v) }) }; *)
+  (*         let vid = next_var_id e in *)
+  (*         run {computation = (fun e' -> e' |> next_var_id |> ( = ) vid)}) } *)
+  (* |> ignore; *)
   (* let j = run {computation = (fun _e _e' -> ())} in *)
   (* run {computation = (fun e -> j e)}; *)
   (* let box = ref [] in *)
   (* run *)
   (*   { computation = *)
-  (*       (fun e -> e |> new_unbound_var |> (fun x -> [x]) |> ( := ) box) }; *)
+  (*       (fun e -> e |> next_var_id |> (fun x -> [x]) |> ( := ) box) }; *)
   (* ^^^ Harmful functions ^^^ *)
   let k = run {computation = (fun _e _e' -> ())} in
   run {computation = (fun _e -> k ())};
