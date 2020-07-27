@@ -6,14 +6,28 @@ module TypeTag = struct
   type t =
     | Constant of type_name
     | Operator of type_name * t list
+    | Generic of string
 
   let arrow = {type_name = "->"}
 
-  (* TODO *)
-  let to_string _ = "X"
-end
+  let fmt = Printf.sprintf
 
-(* | Generic of string *)
+  let is_arrow = function
+    | Operator (name, [_; _]) when name = arrow -> true
+    | _ -> false
+
+  let rec to_string = function
+    | Constant {type_name} -> type_name
+    | Operator (name, [parameter; result]) when name = arrow ->
+        let f =
+          if is_arrow parameter then fmt "(%s) -> %s" else fmt "%s -> %s"
+        in
+        f (to_string parameter) (to_string result)
+    | Operator ({type_name}, types) ->
+        let ts = List.map to_string types |> String.concat " " in
+        fmt "(%s %s)" type_name ts
+    | Generic id -> id
+end
 
 module Value = struct
   type t =
@@ -62,14 +76,21 @@ end = struct
 
   let s = c "String"
 
-  (* TODO *)
-  (* let g var_id = Generic var_id *)
+  let g var_id = TypeTag.Generic var_id
+
+  let match_bool =
+    let result = g "a" in
+    let branch = u @> result in
+    b @> branch @> branch @> result
 
   let items =
-    (* TODO: polymorphic signature for "matchBool" *)
-    [ ("matchBool", b @> (u @> f) @> u @> f);
+    [ ("true", b);
+      ("false", b);
+      ("matchBool", match_bool);
       ("plus", i @> i @> i);
       ("minus", i @> i @> i);
+      ("plusFloat", f @> f @> f);
+      ("minusFloat", f @> f @> f);
       ("concat", s @> s @> s) ]
 end
 

@@ -23,13 +23,14 @@ let var_type v = TE.Variable (ref v)
 let new_unbound_var {env; level; _} =
   TE.(var_type (Unbound (next_var_id env, level)))
 
-let rec tag_to_type env = function
+let rec tag_to_type var = function
   (* TODO: local scope for replacing Core.Generic *)
   (* TODO: replace (Core.TypeTag.Generic id) with val from the scope or *)
   (* (new_generic_var env) and add it to the scope  *)
   | Core.TypeTag.Constant type_name -> TE.Constant type_name
   | Operator (op_name, type_tags) ->
-      Operator (op_name, List.map (tag_to_type env) type_tags)
+      Operator (op_name, List.map (tag_to_type var) type_tags)
+  | Generic _ -> var
 
 let var_name {TE.var_id} =
   let open Char in
@@ -41,16 +42,15 @@ let rec type_tag = function
   | TE.Constant type_name -> Core.TypeTag.Constant type_name
   | Operator (op_name, types) -> Operator (op_name, List.map type_tag types)
   | Variable {contents = Bound ty} -> type_tag ty
-  | Variable {contents = Unbound (_var_id, _)} ->
-      (* TODO *)
-      (* Generic (var_name var_id) *)
-      assert false
+  | Variable {contents = Unbound (var_id, _)} -> Generic (var_name var_id)
 
-let check_occurrence _source_pos _var_id ty =
-  (* TODO *)
-  let f = function
+let check_occurrence source_pos var_id ty =
+  let rec f = function
     | TE.Constant _ -> ()
-    | _ -> ()
+    | Operator (_, types) -> List.iter f types
+    | Variable {contents = Bound ty} -> f ty
+    | Variable {contents = Unbound (id, _)} ->
+        if var_id = id then error source_pos "recursive type"
   in
   f ty
 
@@ -61,7 +61,7 @@ let unify source_pos ty ty' =
       match (ty, ty') with
       | TE.Constant name, TE.Constant name' when name = name' -> ()
       | Operator (name, types), Operator (name', types')
-        when name = name' && List.length types <> List.length types' ->
+        when name = name' && List.length types = List.length types' ->
           List.iter2 f types types'
       | Variable {contents = Bound ty}, ty'
       | ty, Variable {contents = Bound ty'} ->
@@ -70,9 +70,9 @@ let unify source_pos ty ty' =
       | ty, Variable ({contents = Unbound (id, _)} as var) ->
           check_occurrence source_pos id ty;
           var := Bound ty
-      | _, _ ->
+      | ty, ty' ->
           let ty_str ty = type_tag ty |> Core.TypeTag.to_string in
-          fmt "cannot unify types '%s' and '%s'" (ty_str ty) (ty_str ty')
+          fmt "cannot unify types \"%s\" and \"%s\"" (ty_str ty) (ty_str ty')
           |> error source_pos
   in
   f ty ty'
@@ -80,15 +80,16 @@ let unify source_pos ty ty' =
 let arrow parameter result =
   TE.Operator (Core.TypeTag.arrow, [parameter; result])
 
-let rec infer ({scope; env; _} as ctx) {E.expr; source_pos} =
+let rec infer ({scope; _} as ctx) {E.expr; source_pos} =
   let expr, ty =
     match expr with
-    | Value v as e -> (e, Core.Value.type_tag v |> tag_to_type env)
+    | Value v as e ->
+        (e, Core.Value.type_tag v |> tag_to_type (new_unbound_var ctx))
     | Name n as e -> (
         ( e,
           match TS.find_opt n scope with
           | Some ty -> ty
-          | None -> fmt "undefined name '%s'" n.name |> error source_pos ))
+          | None -> fmt "undefined name \"%s\"" n.name |> error source_pos ))
     | Lambda (parameter, result) ->
         let param_type = new_unbound_var ctx in
         let scope = TS.add parameter param_type scope in
@@ -116,9 +117,12 @@ let rec annotate {expr; ty; _} =
 
 let infer_expression expression =
   let computation env =
-    let scope = TS.map (tag_to_type env) Core.type_scope in
     let level = {TE.level = 0} in
-    let context = {env; scope; level} in
+    let context = {env; scope = TS.empty; level} in
+    let scope =
+      TS.map (fun t -> tag_to_type (new_unbound_var context) t) Core.type_scope
+    in
+    let context = {context with scope} in
     let expr = infer context expression in
     annotate expr
   in
