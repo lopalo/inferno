@@ -16,8 +16,6 @@ exception Error of (Lexing.position * string)
 
 let error source_pos message = raise (Error (source_pos, message))
 
-let fmt = Printf.sprintf
-
 let var_type v = TE.Variable (ref v)
 
 let new_unbound_var {env; level; _} =
@@ -32,17 +30,12 @@ let rec tag_to_type var = function
       Operator (op_name, List.map (tag_to_type var) type_tags)
   | Generic _ -> var
 
-let var_name {TE.var_id} =
-  let open Char in
-  let letter = 97 + (var_id mod 26) |> chr |> escaped in
-  let digit = if var_id >= 26 then string_of_int (var_id / 26) else "" in
-  letter ^ digit
-
 let rec type_tag = function
   | TE.Constant type_name -> Core.TypeTag.Constant type_name
   | Operator (op_name, types) -> Operator (op_name, List.map type_tag types)
   | Variable {contents = Bound ty} -> type_tag ty
-  | Variable {contents = Unbound (var_id, _)} -> Generic (var_name var_id)
+  | Variable {contents = Unbound ({var_id}, _)} ->
+      Generic (Util.name_of_id var_id)
 
 let check_occurrence source_pos var_id ty =
   let rec f = function
@@ -71,8 +64,8 @@ let unify source_pos ty ty' =
           check_occurrence source_pos id ty;
           var := Bound ty
       | ty, ty' ->
-          let ty_str ty = type_tag ty |> Core.TypeTag.to_string in
-          fmt "cannot unify types \"%s\" and \"%s\"" (ty_str ty) (ty_str ty')
+          let ty_pp ppf ty = type_tag ty |> Core.TypeTag.boxed_pp ppf in
+          Fmt.str "cannot unify types@ %a@ and@ %a" ty_pp ty ty_pp ty'
           |> error source_pos
   in
   f ty ty'
@@ -89,7 +82,9 @@ let rec infer ({scope; _} as ctx) {E.expr; source_pos} =
         ( e,
           match TS.find_opt n scope with
           | Some ty -> ty
-          | None -> fmt "undefined name \"%s\"" n.name |> error source_pos ))
+          | None ->
+              Printf.sprintf "undefined name \"%s\"" n.name |> error source_pos
+        ))
     | Lambda (parameter, result) ->
         let param_type = new_unbound_var ctx in
         let scope = TS.add parameter param_type scope in

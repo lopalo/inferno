@@ -7,15 +7,17 @@ let string_of_position (pos : Lexing.position) =
 
 let position (lexbuf : Lexing.lexbuf) = string_of_position lexbuf.lex_curr_p
 
-let parse_and_print file_name channel ~show_types =
+let parse_and_print file_name channel ~margin ~show_types =
   let lexbuf = Lexing.from_channel channel in
   lexbuf.lex_curr_p <- {lexbuf.lex_curr_p with pos_fname = file_name};
+  let formatter = Format.std_formatter in
+  Format.pp_set_margin formatter margin;
   try
     match Parser.main Lexer.read lexbuf with
     | Some expression ->
         Inference.infer_expression expression
-        |> Expression.to_string ~with_type:show_types
-        |> print_endline
+        |> Expression.pp ~with_type:show_types formatter;
+        Format.pp_print_newline formatter ()
     | None -> ()
   with
   | Lexer.Error msg -> fmt "%s: %s" (position lexbuf) msg |> print_endline
@@ -25,8 +27,9 @@ let parse_and_print file_name channel ~show_types =
 
 let () =
   let file_name = ref None in
-  (* TODO: "execute" mode *)
+  let margin = ref 80 in
   let show_types = ref false in
+  (* TODO: "execute" mode *)
   let execute = ref false in
   let handler fname =
     match !file_name with
@@ -34,7 +37,8 @@ let () =
     | Some _ -> raise (Arg.Bad "accepts exactly one SOURCE_FILE")
   in
   let specs =
-    [ ("-types", Arg.Set show_types, "Annotate expressions with infered types");
+    [ ("-margin", Arg.Set_int margin, "Right margin for pretty-printing");
+      ("-types", Arg.Set show_types, "Annotate expressions with infered types");
       ("-exec", Arg.Set execute, "Execute code") ]
   in
   let usage = "inferno SOURCE_FILE" in
@@ -43,5 +47,5 @@ let () =
   | None -> Arg.usage specs usage
   | Some fname ->
       let ch = open_in fname in
-      parse_and_print fname ch ~show_types:!show_types;
+      parse_and_print fname ch ~margin:!margin ~show_types:!show_types;
       close_in ch

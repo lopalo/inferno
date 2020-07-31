@@ -10,23 +10,25 @@ module TypeTag = struct
 
   let arrow = {type_name = "->"}
 
-  let fmt = Printf.sprintf
-
   let is_arrow = function
     | Operator (name, [_; _]) when name = arrow -> true
     | _ -> false
 
-  let rec to_string = function
-    | Constant {type_name} -> type_name
+  let rec pp ppf =
+    let open Fmt in
+    function
+    | Constant {type_name} -> string ppf type_name
     | Operator (name, [parameter; result]) when name = arrow ->
-        let f =
-          if is_arrow parameter then fmt "(%s) -> %s" else fmt "%s -> %s"
-        in
-        f (to_string parameter) (to_string result)
+        (if is_arrow parameter then parens pp else pp) ppf parameter;
+        sp ppf ();
+        string ppf "->";
+        sp ppf ();
+        pp ppf result
     | Operator ({type_name}, types) ->
-        let ts = List.map to_string types |> String.concat " " in
-        fmt "(%s %s)" type_name ts
-    | Generic id -> id
+        (list ~sep:sp pp |> pair ~sep:sp string |> parens) ppf (type_name, types)
+    | Generic id -> string ppf id
+
+  let boxed_pp = Util.surround_pp "<" ">" pp |> Fmt.box ~indent:1
 end
 
 module Value = struct
@@ -37,14 +39,14 @@ module Value = struct
     | Bool of bool
     | Str of string
 
-  let fmt = Printf.sprintf
-
-  let to_string = function
-    | Unit -> "()"
-    | Int i -> Int.to_string i
-    | Float f -> Float.to_string f
-    | Bool b -> Bool.to_string b
-    | Str s -> fmt "\"%s\"" (String.escaped s)
+  let pp ppf =
+    let open Fmt in
+    function
+    | Unit -> string ppf "()"
+    | Int i -> int ppf i
+    | Float f -> float ppf f
+    | Bool b -> bool ppf b
+    | Str s -> quote string ppf @@ String.escaped s
 
   let type_tag value =
     let open TypeTag in

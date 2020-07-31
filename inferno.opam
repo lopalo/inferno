@@ -9,6 +9,7 @@ depends: [
   "ocaml-base-compiler" {= "4.10.0"}
 
   "menhir" {= "20200624"}
+  "fmt" {= "0.8.8"}
 
   "merlin" {>= "3.3.2"}
   "ocamlformat" {>= "0.11.0"}

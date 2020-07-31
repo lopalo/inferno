@@ -23,26 +23,47 @@ let flatten_application expression =
   f expression |> List.rev
 
 let flatten_lambda expression =
-  let rec f params ({expr; _} as e : typed) =
-    match expr with
-    | Lambda (param, res) -> f (param :: params) res
+  let rec f params ({expr; tag} as e) =
+    match (expr, tag) with
+    | Lambda (param, res), Operator (_, tag :: _) ->
+        f ((param, tag) :: params) res
     | _ -> (List.rev params, e)
   in
   f [] expression
 
-let rec to_string ?(with_type = false) ({expr; tag} as e) =
-  let fmt = Printf.sprintf in
-  let str =
-    match expr with
-    | Value v -> Core.Value.to_string v
-    | Name {name} -> name
-    | Lambda _ ->
-        let params, result = flatten_lambda e in
-        let name p = p.Core.name in
-        let params_str = List.map name params |> String.concat " " in
-        fmt "(\\%s -> %s)" params_str (to_string ~with_type result)
-    | Application _ ->
-        let exps = flatten_application e |> List.map (to_string ~with_type) in
-        "(" ^ String.concat " " exps ^ ")"
-  in
-  if with_type then fmt "[%s : %s]" str (Core.TypeTag.to_string tag) else str
+let rec pp ?(with_type = false) ppf ({expr; tag} as e) =
+  let open Fmt in
+  let open Core in
+  match expr with
+  | Value v -> Value.pp ppf v
+  | Name {name} -> string ppf name
+  | Lambda _ -> (lambda_pp ~with_type |> hvbox ~indent:1) ppf (flatten_lambda e)
+  | Application _ ->
+      let app_pp =
+        application_pp ~with_type
+        |> (if with_type then annotation_pp else using fst)
+        |> hvbox ~indent:1
+      in
+      app_pp ppf (flatten_application e, tag)
+
+and annotation_pp : 'a. 'a Fmt.t -> ('a * _) Fmt.t =
+ fun pp_value ->
+  Fmt.(Core.TypeTag.boxed_pp |> pair ~sep:(const char ' ') pp_value)
+
+and parameter_pp ~with_type =
+  let open Fmt in
+  using (fun param -> param.Core.name) string
+  |> if with_type then annotation_pp else using fst
+
+and lambda_pp ~with_type ppf (params, res) =
+  let open Fmt in
+  string ppf "(\\";
+  (parameter_pp ~with_type |> list ~sep:sp |> hvbox) ppf params;
+  sp ppf ();
+  string ppf "->";
+  sp ppf ();
+  pp ~with_type ppf res;
+  string ppf ")"
+
+and application_pp ~with_type =
+  Fmt.(pp ~with_type |> list ~sep:sp |> Util.surround_pp "(" ")")
