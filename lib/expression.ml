@@ -5,6 +5,10 @@ type 'a t =
   (* | TypeName of Core.name *)
   | Lambda of Core.name * 'a
   | Application of 'a * 'a
+  | Let of
+      { name : Core.name;
+        rhs : 'a;
+        body : 'a }
 
 type parsed =
   { expr : parsed t;
@@ -45,6 +49,7 @@ let rec pp ?(with_type = false) ppf ({expr; tag} as e) =
         |> hvbox ~indent:1
       in
       app_pp ppf (flatten_application e, tag)
+  | Let {name; rhs; body} -> (let_pp ~with_type |> hvbox) ppf (name, rhs, body)
 
 and annotation_pp : 'a. 'a Fmt.t -> ('a * _) Fmt.t =
  fun pp_value ->
@@ -67,3 +72,16 @@ and lambda_pp ~with_type ppf (params, res) =
 
 and application_pp ~with_type =
   Fmt.(pp ~with_type |> list ~sep:sp |> Util.surround_pp "(" ")")
+
+and let_pp ~with_type ppf ({name}, rhs, body) =
+  let open Fmt in
+  string ppf "let ";
+  (string |> if with_type then annotation_pp else using fst) ppf (name, rhs.tag);
+  sp ppf ();
+  string ppf "=";
+  sp ppf ();
+  pp ~with_type ppf rhs;
+  sp ppf ();
+  string ppf "in";
+  sp ppf ();
+  pp ~with_type ppf body

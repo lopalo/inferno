@@ -13,14 +13,15 @@ let wrap expression position =
 %token <float> FLOAT
 %token <string> STRING
 %token LAMBDA ARROW
+%token LET EQUALS IN
 %token IF THEN ELSE
 %token PIPE
 %token LEFT_BRACKET RIGHT_BRACKET
 %token EOF
 
+%nonassoc LET IN
 %right LAMBDA ARROW
-%nonassoc IF
-%nonassoc ELSE
+%nonassoc IF ELSE
 %left PIPE
 %nonassoc UNIT NAME TYPE_NAME INTEGER FLOAT STRING
 %nonassoc LEFT_BRACKET
@@ -51,8 +52,11 @@ expr:
       Lambda ({name=parameter}, lambda parameters) }
   | func = expression; arg = expression %prec APPLICATION
       {Application (func, arg)}
+
   | arg = expression; PIPE; func = expression
       {Application (func, arg)}
+  | LET; name = NAME; EQUALS; rhs = expression; IN; body = expression
+      {Let {name={name}; rhs; body}}
   | e = if_expr {e}
 
 value:
@@ -71,3 +75,4 @@ value:
     let false_fun = wrap (Lambda ({name="_"}, false_branch)) pos in
     let app func arg = wrap (Application (func, arg)) pos in
     Application (app (app func cond) true_fun, false_fun) }
+

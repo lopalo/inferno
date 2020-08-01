@@ -36,6 +36,9 @@ rule read =
   | '"' {read_string (Buffer.create 16) lexbuf}
   | '\\' {LAMBDA}
   | "->" {ARROW}
+  | "let" {LET}
+  | "=" {EQUALS}
+  | "in" {IN}
   | "if" {IF}
   | "then" {THEN}
   | "else" {ELSE}
