@@ -29,8 +29,7 @@ let flatten_application expression =
 let flatten_lambda expression =
   let rec f params ({expr; tag} as e) =
     match (expr, tag) with
-    | Lambda (param, res), Operator (_, tag :: _) ->
-        f ((param, tag) :: params) res
+    | Lambda (param, res), Type (_, tag :: _) -> f ((param, tag) :: params) res
     | _ -> (List.rev params, e)
   in
   f [] expression

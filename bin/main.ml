@@ -15,7 +15,7 @@ let parse_and_print file_name channel ~margin ~show_types =
   try
     match Parser.main Lexer.read lexbuf with
     | Some expression ->
-        Inference.infer_expression expression
+        Inference.infer_expression Definitions.items expression
         |> Expression.pp ~with_type:show_types formatter;
         Format.pp_print_newline formatter ()
     | None -> ()

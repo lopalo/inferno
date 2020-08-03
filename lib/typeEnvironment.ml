@@ -7,8 +7,7 @@ type 'env t = 'env var_id ref
 type level = {level : int} [@@unboxed]
 
 type 'env ty =
-  | Constant of Core.type_name
-  | Operator of Core.type_name * 'env ty list
+  | Type of Core.type_name * 'env ty list
   | Variable of 'env var ref
 
 and 'env var =
