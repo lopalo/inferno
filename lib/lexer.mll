@@ -39,6 +39,9 @@ rule read =
   | "let" {LET}
   | "=" {EQUALS}
   | "in" {IN}
+  | "type" {TYPE}
+  | "of" {OF}
+  | "unpack" {UNPACK}
   | "if" {IF}
   | "then" {THEN}
   | "else" {ELSE}

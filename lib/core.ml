@@ -2,10 +2,12 @@ type name = {name : string} [@@unboxed]
 
 type type_name = {type_name : string} [@@unboxed]
 
+type type_parameter = {type_parameter : string} [@@unboxed]
+
 module TypeTag = struct
   type t =
     | Type of type_name * t list
-    | Generic of string
+    | Generic of type_parameter
 
   let arrow = {type_name = "->"}
 
@@ -18,14 +20,17 @@ module TypeTag = struct
     function
     | Type ({type_name}, []) -> string ppf type_name
     | Type (name, [parameter; result]) when name = arrow ->
-        (if is_arrow parameter then parens pp else pp) ppf parameter;
+        parameter_pp ppf parameter;
         sp ppf ();
         string ppf "->";
         sp ppf ();
         pp ppf result
     | Type ({type_name}, types) ->
-        (list ~sep:sp pp |> pair ~sep:sp string |> parens) ppf (type_name, types)
-    | Generic id -> string ppf id
+        (list ~sep:sp parameter_pp |> pair ~sep:sp string |> parens)
+          ppf (type_name, types)
+    | Generic {type_parameter} -> string ppf type_parameter
+
+  and parameter_pp ppf ty = (if is_arrow ty then Fmt.parens pp else pp) ppf ty
 
   let boxed_pp = Util.surround_pp "<" ">" pp |> Fmt.box ~indent:1
 end

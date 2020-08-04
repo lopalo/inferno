@@ -13,7 +13,7 @@ let parse_and_print file_name channel ~margin ~show_types =
   let formatter = Format.std_formatter in
   Format.pp_set_margin formatter margin;
   try
-    match Parser.main Lexer.read lexbuf with
+    match Parser.main_expression Lexer.read lexbuf with
     | Some expression ->
         Inference.infer_expression Definitions.items expression
         |> Expression.pp ~with_type:show_types formatter;
