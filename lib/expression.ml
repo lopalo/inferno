@@ -12,9 +12,7 @@ type 'a t =
       { name : Core.name;
         rhs : 'a;
         body : 'a }
-  | LetType of
-      { constructor : type_constructor;
-        body : 'a }
+  | TypeDefinition of type_constructor
   | Packing of Core.type_name * 'a
   | Unpacking of
       { type_name : Core.type_name;
@@ -63,8 +61,7 @@ let rec pp ?(with_type = false) ppf ({expr; tag} as e) =
       in
       app_pp ppf (flatten_application e, tag)
   | Let {name; rhs; body} -> let_pp ~with_type ppf (name, rhs, body)
-  | LetType {constructor; body} ->
-      (let_type_pp ~with_type) ppf (constructor, body)
+  | TypeDefinition constructor -> type_definition_pp ppf constructor
   | Packing ({type_name}, content) ->
       (pp ~with_type |> pair ~sep:sp string |> parens) ppf (type_name, content)
   | Unpacking {type_name; name; rhs; body} ->
@@ -101,9 +98,9 @@ and let_pp ~with_type ppf ({name}, rhs, body) =
   sp ppf ();
   pp ~with_type ppf body
 
-and let_type_pp ~with_type ppf ({name; parameters; content}, body) =
+and type_definition_pp ppf {name; parameters; content} =
   let open Fmt in
-  string ppf "let type ";
+  string ppf "define ";
   string ppf name.type_name;
   space_pp ppf ();
   (match parameters with
@@ -113,10 +110,7 @@ and let_type_pp ~with_type ppf ({name; parameters; content}, body) =
       |> list ~sep:space_pp string ppf;
       space_pp ppf ());
   string ppf "of ";
-  (Core.TypeTag.pp |> box) ppf content;
-  string ppf " in";
-  sp ppf ();
-  pp ~with_type ppf body
+  (Core.TypeTag.pp |> box) ppf content
 
 and unpacking_pp ~with_type ppf ({type_name}, {name}, rhs, body) =
   let open Fmt in

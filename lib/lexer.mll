@@ -39,7 +39,7 @@ rule read =
   | "let" {LET}
   | "=" {EQUALS}
   | "in" {IN}
-  | "type" {TYPE}
+  | "define" {DEFINE}
   | "of" {OF}
   | "unpack" {UNPACK}
   | "if" {IF}

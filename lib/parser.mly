@@ -14,7 +14,7 @@ let wrap expression position =
 %token <string> STRING
 %token LAMBDA ARROW
 %token LET EQUALS IN
-%token TYPE OF UNPACK
+%token DEFINE OF UNPACK
 %token IF THEN ELSE
 %token PIPE
 %token LEFT_BRACKET RIGHT_BRACKET
@@ -61,10 +61,9 @@ expr:
       {Application (func, arg)}
   | LET; name = NAME; EQUALS; rhs = expression; IN; body = expression
       {Let {name={name}; rhs; body}}
-  | LET; TYPE; type_name = TYPE_NAME; parameters = type_parameter*;
-    OF; content = type_spec; IN; body = expression
-      { let constructor = {name={type_name}; parameters; content} in
-        LetType {constructor; body} }
+  | DEFINE; type_name = TYPE_NAME; parameters = type_parameter*;
+    OF; content = type_spec
+      {TypeDefinition {name={type_name}; parameters; content}}
   | type_name = TYPE_NAME; content = expression
       {Packing ({type_name}, content)}
   | UNPACK; type_name = TYPE_NAME; name = NAME;

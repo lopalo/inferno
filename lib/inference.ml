@@ -36,7 +36,7 @@ type 'env context =
     scope : 'env Env.ty Scope.t;
     level : Env.level;
     core_types : TypeNames.t;
-    constructors : E.type_constructor Types.t }
+    constructors : (Core.type_name, E.type_constructor) Hashtbl.t }
 
 exception Error of (Lexing.position * string)
 
@@ -213,17 +213,17 @@ let rec infer ({scope; core_types; constructors; _} as ctx) {E.expr; source_pos}
         let scope = Scope.add name rhs.ty scope in
         let body = infer {ctx with scope} body in
         (Let {name; rhs; body}, body.ty)
-    | LetType {constructor = {name; _} as constructor; body} ->
-        if TypeNames.mem name core_types || Types.mem name constructors then
+    | TypeDefinition ({name; _} as constructor) ->
+        if TypeNames.mem name core_types || Hashtbl.mem constructors name then
           fmt "type \"%s\" is already defined" name.type_name
           |> error source_pos;
-        let constructors = Types.add name constructor constructors in
-        let body = infer {ctx with constructors} body in
-        (LetType {constructor; body}, body.ty)
+        Hashtbl.add constructors name constructor;
+        let ty = Env.Type (Tag.unit, []) in
+        (TypeDefinition constructor, ty)
     | Packing (type_name, content) -> (
-      match Types.find_opt type_name constructors with
+      match Hashtbl.find_opt constructors type_name with
       | None ->
-          fmt "there is no constructor for type \"%s\"" type_name.type_name
+          fmt "type \"%s\" is not defined" type_name.type_name
           |> error source_pos
       | Some constructor ->
           let type_params, content_ty =
@@ -234,9 +234,9 @@ let rec infer ({scope; core_types; constructors; _} as ctx) {E.expr; source_pos}
           let ty = Env.Type (type_name, type_params) in
           (Packing (type_name, content), ty))
     | Unpacking {type_name; name; rhs; body} -> (
-      match Types.find_opt type_name constructors with
+      match Hashtbl.find_opt constructors type_name with
       | None ->
-          fmt "there is no constructor for type \"%s\"" type_name.type_name
+          fmt "type \"%s\" is not defined" type_name.type_name
           |> error source_pos
       | Some constructor ->
           let type_params, content_ty =
@@ -261,9 +261,7 @@ let rec annotate {expr; ty; _} =
     | Let {name; rhs; body} ->
         let rhs, body = (annotate rhs, annotate body) in
         Let {name; rhs; body}
-    | LetType {constructor; body} ->
-        let body = annotate body in
-        LetType {constructor; body}
+    | TypeDefinition constructor -> TypeDefinition constructor
     | Packing (type_name, content) ->
         let content = annotate content in
         Packing (type_name, content)
@@ -288,9 +286,8 @@ let infer_expression definitions expression =
   let computation env =
     let level = {Env.level = 0} in
     let core_types = List.map snd definitions |> collect_type_names in
-    let context =
-      {env; scope = Scope.empty; level; core_types; constructors = Types.empty}
-    in
+    let constructors = Hashtbl.create 100 in
+    let context = {env; scope = Scope.empty; level; core_types; constructors} in
     let scope =
       List.fold_left
         (fun scope (name, type_tag) ->

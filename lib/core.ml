@@ -9,6 +9,8 @@ module TypeTag = struct
     | Type of type_name * t list
     | Generic of type_parameter
 
+  let unit = {type_name = "Unit"}
+
   let arrow = {type_name = "->"}
 
   let is_arrow = function

@@ -1,4 +1,4 @@
-let type Pair a b of (a -> b -> c) -> c in
+let _ = define Pair a b of (a -> b -> c) -> c in
 let pair = \x y -> Pair \f -> f x y in
 let getter = \selector pr -> unpack Pair f = pr in f selector in
 let first = getter \x _ -> x in
