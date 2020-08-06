@@ -62,13 +62,13 @@ let rec pp ?(with_type = false) ppf ({expr; tag} as e) =
         |> hvbox ~indent:1
       in
       app_pp ppf (flatten_application e, tag)
-  | Let {name; rhs; body} -> (let_pp ~with_type |> hvbox) ppf (name, rhs, body)
+  | Let {name; rhs; body} -> let_pp ~with_type ppf (name, rhs, body)
   | LetType {constructor; body} ->
-      (let_type_pp ~with_type |> hvbox) ppf (constructor, body)
+      (let_type_pp ~with_type) ppf (constructor, body)
   | Packing ({type_name}, content) ->
       (pp ~with_type |> pair ~sep:sp string |> parens) ppf (type_name, content)
   | Unpacking {type_name; name; rhs; body} ->
-      (unpacking_pp ~with_type |> hvbox) ppf (type_name, name, rhs, body)
+      unpacking_pp ~with_type ppf (type_name, name, rhs, body)
 
 and annotation_pp : 'a. 'a Fmt.t -> ('a * _) Fmt.t =
  fun pp_value -> Fmt.(Core.TypeTag.boxed_pp |> pair ~sep:space_pp pp_value)
@@ -95,12 +95,9 @@ and let_pp ~with_type ppf ({name}, rhs, body) =
   let open Fmt in
   string ppf "let ";
   (string |> if with_type then annotation_pp else using fst) ppf (name, rhs.tag);
-  sp ppf ();
-  string ppf "=";
-  sp ppf ();
-  pp ~with_type ppf rhs;
-  sp ppf ();
-  string ppf "in";
+  string ppf " = ";
+  (pp ~with_type |> box) ppf rhs;
+  string ppf " in";
   sp ppf ();
   pp ~with_type ppf body
 
@@ -117,8 +114,7 @@ and let_type_pp ~with_type ppf ({name; parameters; content}, body) =
       space_pp ppf ());
   string ppf "of ";
   (Core.TypeTag.pp |> box) ppf content;
-  sp ppf ();
-  string ppf "in";
+  string ppf " in";
   sp ppf ();
   pp ~with_type ppf body
 
@@ -126,13 +122,10 @@ and unpacking_pp ~with_type ppf ({type_name}, {name}, rhs, body) =
   let open Fmt in
   string ppf "unpack ";
   string ppf type_name;
-  sp ppf ();
+  space_pp ppf ();
   (string |> if with_type then annotation_pp else using fst) ppf (name, rhs.tag);
-  sp ppf ();
-  string ppf "=";
-  sp ppf ();
-  pp ~with_type ppf rhs;
-  sp ppf ();
-  string ppf "in";
+  string ppf " = ";
+  (pp ~with_type |> box) ppf rhs;
+  string ppf " in";
   sp ppf ();
   pp ~with_type ppf body

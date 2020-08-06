@@ -14,9 +14,9 @@ let unit = '(' whitespace* ')'
 
 let symbol = ['a'-'z' 'A'-'Z' '0'-'9' '_']
 
-let name = ['a'-'z' '_'] symbol*
+let type_name = ['A'-'Z'] symbol*
 
-let type_name = ['A'-'Z' '_'] symbol*
+let name = ['a'-'z' '_'] symbol*
 
 let digit = ['0'-'9']
 
@@ -48,8 +48,8 @@ rule read =
   | "|>" {PIPE}
   | '(' {LEFT_BRACKET}
   | ')' {RIGHT_BRACKET}
-  | name {NAME (L.lexeme lexbuf)}
   | type_name {TYPE_NAME (L.lexeme lexbuf)}
+  | name {NAME (L.lexeme lexbuf)}
   | eof {EOF}
   | _ {raise (Error ("Unexpected char: " ^ Lexing.lexeme lexbuf))}
 
@@ -66,7 +66,7 @@ and read_string buffer =
   | '\\' 't' { Buffer.add_char buffer '\t';
                read_string buffer lexbuf }
   | [^ '"' '\\']+ { Buffer.add_string buffer (Lexing.lexeme lexbuf);
-                    read_string buffer lexbuf}
+                    read_string buffer lexbuf }
   | '"' {STRING (Buffer.contents buffer)}
   | eof {raise (Error "String is not terminated")}
   | _ {raise (Error ("Illegal string character: " ^ Lexing.lexeme lexbuf))}

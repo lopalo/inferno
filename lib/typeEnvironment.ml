@@ -11,9 +11,10 @@ type 'env ty =
   | Variable of 'env var ref
 
 and 'env var =
-  | Unbound of 'env var_id * level
   | Bound of 'env ty
+  | Unbound of 'env var_id * level
   | Generic of 'env var_id
+  | Generic' of 'env var_id * level
 
 type 'a computation = {computation : 'env. 'env t -> 'a} [@@unboxed]
 
