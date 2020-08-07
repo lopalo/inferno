@@ -1,24 +1,9 @@
 module E = Expression
 module Env = TypeEnvironment
 module Tag = Core.TypeTag
-
-module Scope = Map.Make (struct
-  open Core
-
-  type t = name
-
-  let compare x y = String.compare x.name y.name
-end)
+module Scope = Core.Scope
 
 module TypeNames = Set.Make (struct
-  open Core
-
-  type t = type_name
-
-  let compare x y = String.compare x.type_name y.type_name
-end)
-
-module Types = Map.Make (struct
   open Core
 
   type t = type_name
@@ -188,7 +173,7 @@ let rec infer ({scope; core_types; constructors; _} as ctx) {E.expr; source_pos}
   let fmt = Printf.sprintf in
   let expr, ty =
     match expr with
-    | Value v as e -> (e, Core.Value.type_tag v |> tag_to_type ctx)
+    | Value v as e -> (e, E.Value.type_tag v |> tag_to_type ctx)
     | Name n as e -> (
         ( e,
           match Scope.find_opt n scope with

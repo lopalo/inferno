@@ -1,10 +1,40 @@
+module Value = struct
+  type t =
+    | Unit
+    | Int of int
+    | Float of float
+    | Bool of bool
+    | Str of string
+
+  let pp ppf =
+    let open Fmt in
+    function
+    | Unit -> string ppf "()"
+    | Int i -> int ppf i
+    | Float f -> float ppf f
+    | Bool b -> bool ppf b
+    | Str s -> quote string ppf @@ String.escaped s
+
+  let type_tag value =
+    let open Core.TypeTag in
+    let type_name =
+      match value with
+      | Unit -> "Unit"
+      | Int _ -> "Int"
+      | Float _ -> "Float"
+      | Bool _ -> "Bool"
+      | Str _ -> "String"
+    in
+    Type ({type_name}, [])
+end
+
 type type_constructor =
   { name : Core.type_name;
     parameters : Core.type_parameter list;
     content : Core.TypeTag.t }
 
 type 'a t =
-  | Value of Core.Value.t
+  | Value of Value.t
   | Name of Core.name
   | Lambda of Core.name * 'a
   | Application of 'a * 'a

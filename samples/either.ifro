@@ -1,0 +1,16 @@
+let check = \temp -> if f.> 0.0 temp
+                     then left "frozen"
+                     else right temp
+in
+let heat = \x -> @either
+                 x
+                 (\status ->
+                  let _ = write status in
+                  let _ = writeNewline ()
+                  in 10.0)
+                 (\temp -> f.* temp 0.1)
+in
+let comp = \f f' x -> x |> f |> f' in
+let f = comp check heat in
+(& (f 36.6) (f -5.0))
+

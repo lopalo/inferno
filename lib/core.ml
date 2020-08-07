@@ -4,7 +4,19 @@ type type_name = {type_name : string} [@@unboxed]
 
 type type_parameter = {type_parameter : string} [@@unboxed]
 
-module TypeTag = struct
+module TypeTag : sig
+  type t =
+    | Type of type_name * t list
+    | Generic of type_parameter
+
+  val arrow : type_name
+
+  val unit : type_name
+
+  val pp : t Fmt.t
+
+  val boxed_pp : t Fmt.t
+end = struct
   type t =
     | Type of type_name * t list
     | Generic of type_parameter
@@ -37,32 +49,8 @@ module TypeTag = struct
   let boxed_pp = Util.surround_pp "<" ">" pp |> Fmt.box ~indent:1
 end
 
-module Value = struct
-  type t =
-    | Unit
-    | Int of int
-    | Float of float
-    | Bool of bool
-    | Str of string
+module Scope = Map.Make (struct
+  type t = name
 
-  let pp ppf =
-    let open Fmt in
-    function
-    | Unit -> string ppf "()"
-    | Int i -> int ppf i
-    | Float f -> float ppf f
-    | Bool b -> bool ppf b
-    | Str s -> quote string ppf @@ String.escaped s
-
-  let type_tag value =
-    let open TypeTag in
-    let type_name =
-      match value with
-      | Unit -> "Unit"
-      | Int _ -> "Int"
-      | Float _ -> "Float"
-      | Bool _ -> "Bool"
-      | Str _ -> "String"
-    in
-    Type ({type_name}, [])
-end
+  let compare x y = String.compare x.name y.name
+end)

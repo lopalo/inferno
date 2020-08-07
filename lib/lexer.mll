@@ -12,11 +12,13 @@ let newline = '\r' | '\n' | "\r\n"
 
 let unit = '(' whitespace* ')'
 
-let symbol = ['a'-'z' 'A'-'Z' '0'-'9' '_']
+let type_name = ['A'-'Z'] ['A'-'Z' 'a'-'z' '0'-'9' '_']*
 
-let type_name = ['A'-'Z'] symbol*
+let name_head = ['a'-'z' '_' '$' '&' '%' '@']
 
-let name = ['a'-'z' '_'] symbol*
+let name_rest = ['A'-'Z' '0'-'9' '+' '-' '*' '.' '/' ':' '!' '?' '=' '<' '>' ''']
+
+let name = name_head (name_head | name_rest)*
 
 let digit = ['0'-'9']
 

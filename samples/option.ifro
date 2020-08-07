@@ -1,0 +1,10 @@
+
+let fmap = \f opt ->
+           @option
+           opt
+           (\_ -> none)
+           (\x -> f x |> some)
+in
+let check = \s -> if string.= s "" then none else some s in
+let f = \s -> s |> check |> fmap length in
+(& (f "") (f "foo bar baz"))

@@ -20,7 +20,7 @@ let wrap expression position =
 %token LEFT_BRACKET RIGHT_BRACKET
 %token EOF
 
-%nonassoc LET IN UNPACK
+%nonassoc LET IN DEFINE UNPACK
 %right LAMBDA ARROW
 %nonassoc IF ELSE
 %left PIPE
@@ -97,7 +97,7 @@ type_spec:
   THEN; true_branch = expression;
   ELSE; false_branch = expression
   { let pos = $startpos in
-    let func = wrap (Name {name="matchBool"}) $startpos in
+    let func = wrap (Name {name="@bool"}) $startpos in
     let true_fun = wrap (Lambda ({name="_"}, true_branch)) pos in
     let false_fun = wrap (Lambda ({name="_"}, false_branch)) pos in
     let app func arg = wrap (Application (func, arg)) pos in
