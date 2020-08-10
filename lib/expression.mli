@@ -9,6 +9,8 @@ module Value : sig
   val type_tag : t -> Core.TypeTag.t
 end
 
+module Names : Set.S with type elt = Core.name
+
 type type_constructor =
   { name : Core.type_name;
     parameters : Core.type_parameter list;
@@ -17,7 +19,10 @@ type type_constructor =
 type 'a t =
   | Value of Value.t
   | Name of Core.name
-  | Lambda of Core.name * 'a
+  | Lambda of
+      { free_names : Names.t;
+        parameter : Core.name;
+        result : 'a }
   | Application of 'a * 'a
   | Let of
       { name : Core.name;
@@ -40,3 +45,5 @@ type typed =
     tag : Core.TypeTag.t }
 
 val pp : ?with_type:bool -> typed Fmt.t
+
+val collect_free_names : typed -> typed * Names.t

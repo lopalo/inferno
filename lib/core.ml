@@ -9,9 +9,9 @@ module TypeTag : sig
     | Type of type_name * t list
     | Generic of type_parameter
 
-  val arrow : type_name
-
   val unit : type_name
+
+  val arrow : type_name
 
   val pp : t Fmt.t
 

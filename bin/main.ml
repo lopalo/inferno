@@ -7,7 +7,7 @@ let string_of_position (pos : Lexing.position) =
 
 let position (lexbuf : Lexing.lexbuf) = string_of_position lexbuf.lex_curr_p
 
-let parse_and_print file_name channel ~margin ~show_types =
+let parse_and_print file_name channel ~margin ~show_types ~execute =
   let lexbuf = Lexing.from_channel channel in
   lexbuf.lex_curr_p <- {lexbuf.lex_curr_p with pos_fname = file_name};
   let formatter = Format.std_formatter in
@@ -15,8 +15,13 @@ let parse_and_print file_name channel ~margin ~show_types =
   try
     match Parser.main_expression Lexer.read lexbuf with
     | Some expression ->
-        Inference.infer_expression Definitions.items expression
-        |> Expression.pp ~with_type:show_types formatter;
+        let definitions = Definitions.items in
+        let expression, _ =
+          Inference.infer_expression definitions expression
+          |> Expression.collect_free_names
+        in
+        if execute then Interpreter.execute_expression definitions expression
+        else expression |> Expression.pp ~with_type:show_types formatter;
         Format.pp_print_newline formatter ()
     | None -> ()
   with
@@ -29,7 +34,6 @@ let () =
   let file_name = ref None in
   let margin = ref 80 in
   let show_types = ref false in
-  (* TODO: "execute" mode *)
   let execute = ref false in
   let handler fname =
     match !file_name with
@@ -47,5 +51,6 @@ let () =
   | None -> Arg.usage specs usage
   | Some fname ->
       let ch = open_in fname in
-      parse_and_print fname ch ~margin:!margin ~show_types:!show_types;
+      parse_and_print fname ch ~margin:!margin ~show_types:!show_types
+        ~execute:!execute;
       close_in ch

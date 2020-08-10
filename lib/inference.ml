@@ -179,12 +179,12 @@ let rec infer ({scope; core_types; constructors; _} as ctx) {E.expr; source_pos}
           match Scope.find_opt n scope with
           | Some ty -> instantiate ctx ty
           | None -> fmt "undefined name \"%s\"" n.name |> error source_pos ))
-    | Lambda (parameter, result) ->
+    | Lambda ({parameter; result; _} as l) ->
         let param_type = new_unbound_var ctx in
         let scope = Scope.add parameter param_type scope in
         let result = infer {ctx with scope} result in
         let ty = arrow param_type result.ty in
-        (Lambda (parameter, result), ty)
+        (Lambda {l with parameter; result}, ty)
     | Application (func, argument) ->
         let func = infer ctx func in
         let argument = infer ctx argument in
@@ -240,7 +240,8 @@ let rec annotate {expr; ty; _} =
   let expr =
     match expr with
     | (Value _ | Name _) as e -> e
-    | Lambda (parameter, result) -> Lambda (parameter, annotate result)
+    | Lambda ({parameter; result; _} as l) ->
+        Lambda {l with parameter; result = annotate result}
     | Application (func, argument) ->
         Application (annotate func, annotate argument)
     | Let {name; rhs; body} ->

@@ -4,8 +4,8 @@ let map = fix \map f list ->
               (\_ -> null)
               (\x tail -> cons (f x) (map f tail))
 in
-let i.inc = \x -> i.+ x 1 in
-let f.inc = \x -> f.+ x 1.0 in
+let i.inc = i.+ 1 in
+let f.inc = f.+ 1.0 in
 let _ = map i.inc (cons 1 (cons -2 (cons +3 null))) in
 let _ = map f.inc (cons +1.0 (cons 2.0 (cons -3.0 null))) in
 let fold = \f x ->

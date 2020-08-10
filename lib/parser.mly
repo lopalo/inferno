@@ -3,7 +3,10 @@ open Core
 open Expression
 
 let wrap expression position =
-  {expr=expression; source_pos=position}
+  {expr = expression; source_pos = position}
+
+let make_lambda parameter result =
+  Lambda {parameter = {name = parameter}; result; free_names = Names.empty}
 %}
 
 %token UNIT
@@ -51,24 +54,24 @@ expr:
   | LAMBDA; parameter = NAME; parameters = NAME*; ARROW; result = expression
     { let rec lambda = function
         | param :: params ->
-            wrap (Lambda ({name=param}, lambda params)) $startpos
+            wrap (make_lambda param (lambda params)) $startpos
         | [] -> result
       in
-      Lambda ({name=parameter}, lambda parameters) }
+      make_lambda parameter (lambda parameters) }
   | func = expression; arg = expression %prec APPLICATION
       {Application (func, arg)}
   | arg = expression; PIPE; func = expression
       {Application (func, arg)}
   | LET; name = NAME; EQUALS; rhs = expression; IN; body = expression
-      {Let {name={name}; rhs; body}}
+      {Let {name = {name}; rhs; body}}
   | DEFINE; type_name = TYPE_NAME; parameters = type_parameter*;
     OF; content = type_spec
-      {TypeDefinition {name={type_name}; parameters; content}}
+      {TypeDefinition {name = {type_name}; parameters; content}}
   | type_name = TYPE_NAME; content = expression
       {Packing ({type_name}, content)}
   | UNPACK; type_name = TYPE_NAME; name = NAME;
     EQUALS; rhs = expression; IN; body = expression
-      {Unpacking {type_name={type_name}; name={name}; rhs; body}}
+      {Unpacking {type_name = {type_name}; name = {name}; rhs; body}}
   | e = if_expr {e}
 
 value:
@@ -97,9 +100,10 @@ type_spec:
   THEN; true_branch = expression;
   ELSE; false_branch = expression
   { let pos = $startpos in
-    let func = wrap (Name {name="@bool"}) $startpos in
-    let true_fun = wrap (Lambda ({name="_"}, true_branch)) pos in
-    let false_fun = wrap (Lambda ({name="_"}, false_branch)) pos in
+    let func = wrap (Name {name = "@bool"}) $startpos in
+    let branch_fun branch = wrap (make_lambda "_" branch) in
+    let true_fun = branch_fun true_branch pos in
+    let false_fun = branch_fun false_branch pos in
     let app func arg = wrap (Application (func, arg)) pos in
     Application (app (app func cond) true_fun, false_fun) }
 

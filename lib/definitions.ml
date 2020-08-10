@@ -32,6 +32,7 @@ let items =
     ("i.-", ty "Int -> Int -> Int");
     ("i.*", ty "Int -> Int -> Int");
     ("i./", ty "Int -> Int -> Int");
+    ("i.toString", ty "Int -> String");
     (* Float *)
     ("f.+", ty "Float -> Float -> Float");
     ("f.-", ty "Float -> Float -> Float");
@@ -39,6 +40,7 @@ let items =
     ("f.>", ty "Float -> Float -> Bool");
     ("f.*", ty "Float -> Float -> Float");
     ("f./", ty "Float -> Float -> Float");
+    ("f.toString", ty "Float -> String");
     (* String *)
     ("string.=", ty "String -> String -> Bool");
     ("string.>", ty "String -> String -> Bool");
