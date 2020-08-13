@@ -33,19 +33,25 @@ let items =
     ("i.*", ty "Int -> Int -> Int");
     ("i./", ty "Int -> Int -> Int");
     ("i.toString", ty "Int -> String");
+    ("i.ofString", ty "String -> (Option Int)");
+    ("i.toFloat", ty "Int -> Float");
     (* Float *)
-    ("f.+", ty "Float -> Float -> Float");
-    ("f.-", ty "Float -> Float -> Float");
     ("f.=", ty "Float -> Float -> Bool");
     ("f.>", ty "Float -> Float -> Bool");
+    ("f.+", ty "Float -> Float -> Float");
+    ("f.-", ty "Float -> Float -> Float");
     ("f.*", ty "Float -> Float -> Float");
     ("f./", ty "Float -> Float -> Float");
     ("f.toString", ty "Float -> String");
+    ("f.ofString", ty "String -> (Option Float)");
+    ("f.toInt", ty "Float -> Int");
     (* String *)
     ("string.=", ty "String -> String -> Bool");
     ("string.>", ty "String -> String -> Bool");
-    ("concat", ty "String -> String -> String");
     ("length", ty "String -> Int");
+    ("concat", ty "String -> String -> String");
+    ("split", ty "String -> String -> (List String)");
+    ("substr", ty "String -> Int -> Int -> String");
     (* I/O *)
     ("readLine", ty "Unit -> String");
     ("write", ty "String -> Unit");

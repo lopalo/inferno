@@ -5,10 +5,12 @@ in
 let heat = \x -> @either
                  x
                  (\status ->
-                  let _ = write status in
-                  let _ = writeNewline ()
-                  in 10.0)
-                 (\temp -> f.* temp 0.1)
+                  let _ = status |> concat " " |> write in
+                  10.0)
+                 (\temp ->
+                  let x = f.* temp 1.1 in
+                  let _ = f.toString x |> write in
+                  x)
 in
 let comp = \f f' x -> x |> f |> f' in
 let f = comp check heat in

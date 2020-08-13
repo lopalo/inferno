@@ -7,4 +7,4 @@ let fmap = \f opt ->
 in
 let check = \s -> if string.= s "" then none else some s in
 let f = \s -> s |> check |> fmap length in
-(& (f "") (f "foo bar baz"))
+readLine () |> f |> (fmap \x -> i.toString x |> write)

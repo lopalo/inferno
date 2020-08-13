@@ -6,9 +6,10 @@ let second = getter \_ y -> y in
 let foo = \p ->
           let f = first p in
           let s = second p in
-          s
+          if f then s else "ZUZUZU"
 in
 let bar = pair true "ggg" in
-let f = pair 2.0 3 |> first in
-foo bar
+let _ = pair 2.0 3 |> second |> i./ 0 |> i.toString |> write in
+let _ = writeNewline () in
+foo bar |> write
 

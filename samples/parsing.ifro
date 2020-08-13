@@ -1,0 +1,15 @@
+let iter = \list ->
+           @list
+           list
+           (\_ -> right ())
+           (\str rest ->
+            let res = @option
+                      (f.ofString str)
+                      (\_ -> substr str 2 3)
+                      (\f -> f.toInt f |> i.toString)
+            in
+            let _ =  write res in
+            let _ = writeNewline () in
+            left rest)
+in
+readLine () |> split ", " |> loop iter

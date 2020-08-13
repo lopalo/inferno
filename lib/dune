@@ -6,4 +6,4 @@
 
 (library
  (name inferno)
- (libraries fmt))
+ (libraries str fmt))

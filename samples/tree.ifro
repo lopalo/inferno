@@ -22,6 +22,11 @@ let intTree = node (node emptyNode
                          (node emptyNode 82 emptyNode))
 in
 let strTree = node emptyNode "d" emptyNode in
-(& (binarySearch i.= i.> 8 intTree)
-   (binarySearch string.= string.> "foo" strTree))
+let print = \toString x ->
+             let _ = @option x (\_ -> "nothing") toString
+                     |> concat " "
+                     |> write in x
+in
+(& (binarySearch i.= i.> 60 intTree |> print i.toString)
+   (binarySearch string.= string.> "foo" strTree |> print (\x -> x)))
 

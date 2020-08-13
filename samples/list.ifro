@@ -7,7 +7,8 @@ in
 let i.inc = i.+ 1 in
 let f.inc = f.+ 1.0 in
 let _ = map i.inc (cons 1 (cons -2 (cons +3 null))) in
-let _ = map f.inc (cons +1.0 (cons 2.0 (cons -3.0 null))) in
+let numbers = map f.inc (cons +1.0 (cons 2.0 (cons -3.0 null))) in
+let _ = map (\n -> let _ = f.toString n |> write in writeNewline ()) numbers in
 let fold = \f x ->
            let acc = $1 x in
            let list = $2 x in
@@ -16,7 +17,7 @@ let fold = \f x ->
            (\_ -> right acc)
            (\x tail -> left (& (f acc x) tail))
 in
-let numbers = (cons "foo " (cons "bar " (cons "baz" null))) in
-loop (fold concat) (& "" numbers)
+let words = (cons "foo, " (cons "bar, " (cons "baz" null))) in
+loop (fold concat) (& "" words) |> write
 
 
