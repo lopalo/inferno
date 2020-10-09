@@ -1,0 +1,6 @@
+let _ = define Id of a -> a in
+let x = "foo" in
+let id = \y -> x in
+let foo = \id' -> unpack Id f = id' in (& (f "bar") (f "bar")) in
+foo (Id id)
+

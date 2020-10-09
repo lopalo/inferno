@@ -1,0 +1,18 @@
+let check = \temp -> if f.> 0.0 temp
+                     then left "frozen"
+                     else right (left temp)
+in
+let heat = \x -> @either
+                 x
+                 (\status ->
+                  let _ = status |> concat " " |> write in
+                  10.0)
+                 (\temp ->
+                  let x = f.* temp 1.1 in
+                  let _ = f.toString x |> write in
+                  x)
+in
+let comp = \f f' x -> x |> f |> f' in
+let f = comp check heat in
+(& (f 36.6) (f -5.0))
+

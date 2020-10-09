@@ -6,6 +6,7 @@ let ty type_string =
 let items =
   [ ("fix", ty "((a -> b) -> a -> b) -> a -> b");
     ("loop", ty "(a -> (Either a b)) -> a -> b");
+    ("unit", ty "Unit");
     ("true", ty "Bool");
     ("false", ty "Bool");
     ("@bool", ty "Bool -> (Unit -> a) -> (Unit -> a) -> a");

@@ -1,0 +1,31 @@
+let binarySearch = \x.= x.> x ->
+                   fix
+                   \search tree ->
+                   @tree
+                   tree
+                   (\_ -> none)
+                   (\left el right ->
+                    if x.= x el
+                    then some el
+                    else if x.> x el
+                         then search right
+                         else search left)
+
+in
+let intTree = node (node emptyNode
+                         33
+                         (node emptyNode 36 emptyNode))
+                   40
+                   (node (node emptyNode "60" emptyNode)
+                         63
+                         (node emptyNode 82 emptyNode))
+in
+let strTree = node emptyNode "d" emptyNode in
+let print = \toString x ->
+             let _ = @option x (\_ -> "nothing") toString
+                     |> concat " "
+                     |> write in x
+in
+(& (binarySearch i.= i.> 60 intTree |> print i.toString)
+   (binarySearch string.= string.> "foo" strTree |> print (\x -> x)))
+
