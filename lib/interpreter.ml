@@ -91,6 +91,8 @@ module Definitions = struct
     | Either (Ok res) -> res
     | _ -> type_error "loop"
 
+  let unit = Unit
+
   let true_value = Bool true
 
   let false_value = Bool false
@@ -297,6 +299,7 @@ module Definitions = struct
   let items =
     [ ("fix", fn2 fix);
       ("loop", fn2 loop);
+      ("unit", unit);
       ("true", true_value);
       ("false", false_value);
       ("@bool", fn3 match_bool);
