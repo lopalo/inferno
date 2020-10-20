@@ -26,9 +26,9 @@ let parse_and_print file_name channel ~margin ~show_types ~execute =
     | None -> ()
   with
   | Lexer.Error msg -> fmt "%s: %s" (position lexbuf) msg |> print_endline
-  | Parser.Error -> fmt "%s: syntax error" (position lexbuf) |> print_endline
+  | Parser.Error -> fmt "%s: Syntax error" (position lexbuf) |> print_endline
   | Inference.Error (pos, msg) ->
-      fmt "%s: %s" (string_of_position pos) msg |> print_endline
+      fmt "%s:\n%s" (string_of_position pos) msg |> print_endline
 
 let () =
   let file_name = ref None in

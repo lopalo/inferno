@@ -10,6 +10,6 @@ let foo = \p ->
 in
 let bar = pair true "ggg" in
 let _ = pair 2.0 3 |> second |> i./ 0 |> i.toString |> write in
-let _ = writeNewline () in
+let _ = write "\n" in
 foo bar |> write
 

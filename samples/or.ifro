@@ -2,7 +2,7 @@ let check = \temp -> if f.> 0.0 temp
                      then left "frozen"
                      else right temp
 in
-let heat = \x -> @either
+let heat = \x -> @or
                  x
                  (\status ->
                   let _ = status |> concat " " |> write in

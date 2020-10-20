@@ -8,8 +8,7 @@ let iter = \list ->
                       (\_ -> substr str 2 3)
                       (\f -> f.toInt f |> i.toString)
             in
-            let _ =  write res in
-            let _ = writeNewline () in
+            let _ =  concat res "\n" |> write in
             left rest)
 in
 readLine () |> split ", " |> loop iter

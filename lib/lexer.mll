@@ -4,11 +4,15 @@ open Parser
 module L = Lexing
 
 exception Error of string
+
+let error msg = raise (Error msg)
 }
 
 let whitespace = [' ' '\t']+
 
 let newline = '\r' | '\n' | "\r\n"
+
+let line_comment = '#' [^ '\r' '\n']* newline
 
 let unit = '(' whitespace* ')'
 
@@ -31,7 +35,7 @@ let float = sign? digit+ '.' digit+
 rule read =
   parse
   | whitespace {read lexbuf}
-  | newline {L.new_line lexbuf; read lexbuf}
+  | newline | line_comment {L.new_line lexbuf; read lexbuf}
   | unit {UNIT}
   | integer {INTEGER (int_of_string (L.lexeme lexbuf))}
   | float {FLOAT (float_of_string (L.lexeme lexbuf))}
@@ -53,7 +57,7 @@ rule read =
   | type_name {TYPE_NAME (L.lexeme lexbuf)}
   | name {NAME (L.lexeme lexbuf)}
   | eof {EOF}
-  | _ {raise (Error ("Unexpected char: " ^ Lexing.lexeme lexbuf))}
+  | _ {error ("Unexpected char: " ^ Lexing.lexeme lexbuf)}
 
 and read_string buffer =
   parse
@@ -70,6 +74,6 @@ and read_string buffer =
   | [^ '"' '\\']+ { Buffer.add_string buffer (Lexing.lexeme lexbuf);
                     read_string buffer lexbuf }
   | '"' {STRING (Buffer.contents buffer)}
-  | eof {raise (Error "String is not terminated")}
-  | _ {raise (Error ("Illegal string character: " ^ Lexing.lexeme lexbuf))}
+  | eof {error "String is not terminated"}
+  | _ {error ("Illegal string character: " ^ Lexing.lexeme lexbuf)}
 

@@ -68,7 +68,7 @@ let check_occurrence source_pos var_id =
     | Env.Type (_, types) -> List.iter f types
     | Variable {contents = Bound ty} -> f ty
     | Variable {contents = Unbound (id, _)} ->
-        if var_id = id then error source_pos "recursive type"
+        if var_id = id then error source_pos "Recursive type"
     | Variable {contents = Generic _} -> assert false
     | Variable {contents = Generic' _} -> ()
   in
@@ -85,13 +85,16 @@ let adjust_levels (level : Env.level) =
   in
   f
 
-let unify source_pos =
+let unify source_pos root_ty root_ty' =
   let rec f ty ty' =
     if ty == ty' then ()
     else
       let unification_error () =
         let ty_pp ppf ty = type_tag ty |> Tag.boxed_pp ppf in
-        Fmt.str "cannot unify types@ %a@ and@ %a" ty_pp ty ty_pp ty'
+        Fmt.str
+          "Cannot unify types@[<hv 1> %a and@ %a@].@ Types@[<hv 1> %a and@ \
+           %a@] are not compatible"
+          ty_pp root_ty ty_pp root_ty' ty_pp ty ty_pp ty'
         |> error source_pos
       in
       match (ty, ty') with
@@ -114,7 +117,7 @@ let unify source_pos =
           var := Bound ty
       | _ -> unification_error ()
   in
-  f
+  f root_ty root_ty'
 
 let generalize (level : Env.level) =
   let rec f = function
@@ -178,7 +181,7 @@ let rec infer ({scope; core_types; constructors; _} as ctx) {E.expr; source_pos}
         ( e,
           match Scope.find_opt n scope with
           | Some ty -> instantiate ctx ty
-          | None -> fmt "undefined name \"%s\"" n.name |> error source_pos ))
+          | None -> fmt "Undefined name \"%s\"" n.name |> error source_pos ))
     | Lambda ({parameter; result; _} as l) ->
         let param_type = new_unbound_var ctx in
         let scope = Scope.add parameter param_type scope in
@@ -200,7 +203,7 @@ let rec infer ({scope; core_types; constructors; _} as ctx) {E.expr; source_pos}
         (Let {name; rhs; body}, body.ty)
     | TypeDefinition ({name; _} as constructor) ->
         if TypeNames.mem name core_types || Hashtbl.mem constructors name then
-          fmt "type \"%s\" is already defined" name.type_name
+          fmt "Type \"%s\" is already defined" name.type_name
           |> error source_pos;
         Hashtbl.add constructors name constructor;
         let ty = Env.Type (Tag.unit, []) in
@@ -208,7 +211,7 @@ let rec infer ({scope; core_types; constructors; _} as ctx) {E.expr; source_pos}
     | Packing (type_name, content) -> (
       match Hashtbl.find_opt constructors type_name with
       | None ->
-          fmt "type \"%s\" is not defined" type_name.type_name
+          fmt "Type \"%s\" is not defined" type_name.type_name
           |> error source_pos
       | Some constructor ->
           let type_params, content_ty =
@@ -221,7 +224,7 @@ let rec infer ({scope; core_types; constructors; _} as ctx) {E.expr; source_pos}
     | Unpacking {type_name; name; rhs; body} -> (
       match Hashtbl.find_opt constructors type_name with
       | None ->
-          fmt "type \"%s\" is not defined" type_name.type_name
+          fmt "Type \"%s\" is not defined" type_name.type_name
           |> error source_pos
       | Some constructor ->
           let type_params, content_ty =

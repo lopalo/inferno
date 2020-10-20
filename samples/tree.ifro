@@ -13,15 +13,15 @@ let binarySearch = \x.= x.> x ->
                          else search left)
 
 in
-let intTree = node (node emptyNode
+let intTree = node (node empty
                          33
-                         (node emptyNode 36 emptyNode))
+                         (node empty 36 empty))
                    40
-                   (node (node emptyNode 60 emptyNode)
+                   (node (node empty 60 empty)
                          63
-                         (node emptyNode 82 emptyNode))
+                         (node empty 82 empty))
 in
-let strTree = node emptyNode "d" emptyNode in
+let strTree = node empty "d" empty in
 let print = \toString x ->
              let _ = @option x (\_ -> "nothing") toString
                      |> concat " "

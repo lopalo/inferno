@@ -9,8 +9,8 @@ type obj =
   | Str of string
   | Function of func
   | Option of obj option
-  | Both of obj * obj
-  | Either of (obj, obj) result
+  | And of obj * obj
+  | Or of (obj, obj) result
   | List of obj list
   | Tree of tree
 
@@ -26,7 +26,7 @@ and func =
 and scope = obj Scope.t
 
 and tree =
-  | EmptyNode
+  | Empty
   | Node of tree * obj * tree
 
 exception TypeError of string
@@ -87,11 +87,9 @@ module Definitions = struct
 
   let rec loop func x =
     match execute_application func x with
-    | Either (Error x) -> loop func x
-    | Either (Ok res) -> res
+    | Or (Error x) -> loop func x
+    | Or (Ok res) -> res
     | _ -> type_error "loop"
-
-  let unit = Unit
 
   let true_value = Bool true
 
@@ -113,25 +111,25 @@ module Definitions = struct
     | Option (Some x) -> execute_application some_func x
     | _ -> type_error "match option"
 
-  let both x y = Both (x, y)
+  let and_ x y = And (x, y)
 
   let first = function
-    | Both (a, _) -> a
+    | And (a, _) -> a
     | _ -> type_error "first"
 
   let second = function
-    | Both (_, b) -> b
+    | And (_, b) -> b
     | _ -> type_error "second"
 
-  let left x = Either (Error x)
+  let left x = Or (Error x)
 
-  let right x = Either (Ok x)
+  let right x = Or (Ok x)
 
-  let match_either either_val left_func right_func =
-    match either_val with
-    | Either (Error x) -> execute_application left_func x
-    | Either (Ok x) -> execute_application right_func x
-    | _ -> type_error "match either"
+  let match_or or_val left_func right_func =
+    match or_val with
+    | Or (Error x) -> execute_application left_func x
+    | Or (Ok x) -> execute_application right_func x
+    | _ -> type_error "match or"
 
   let null = List []
 
@@ -146,7 +144,7 @@ module Definitions = struct
         execute_application (execute_application list_func x) (List tail)
     | _ -> type_error "match list"
 
-  let empty_node = Tree EmptyNode
+  let empty = Tree Empty
 
   let node left element right =
     match (left, right) with
@@ -155,7 +153,7 @@ module Definitions = struct
 
   let match_tree tree_val empty_func tree_func =
     match tree_val with
-    | Tree EmptyNode -> execute_application empty_func Unit
+    | Tree Empty -> execute_application empty_func Unit
     | Tree (Node (left, element, right)) ->
         execute_application
           (execute_application
@@ -292,30 +290,25 @@ module Definitions = struct
     | Str s -> print_string s; Unit
     | _ -> type_error "write"
 
-  let write_newline = function
-    | Unit -> print_newline (); Unit
-    | _ -> type_error "write newline"
-
   let items =
     [ ("fix", fn2 fix);
       ("loop", fn2 loop);
-      ("unit", unit);
       ("true", true_value);
       ("false", false_value);
       ("@bool", fn3 match_bool);
       ("none", none);
       ("some", fn1 some);
       ("@option", fn3 match_option);
-      ("&", fn2 both);
+      ("&", fn2 and_);
       ("$1", fn1 first);
       ("$2", fn1 second);
       ("left", fn1 left);
       ("right", fn1 right);
-      ("@either", fn3 match_either);
+      ("@or", fn3 match_or);
       ("null", null);
       ("cons", fn2 cons);
       ("@list", fn3 match_list);
-      ("emptyNode", empty_node);
+      ("empty", empty);
       ("node", fn3 node);
       ("@tree", fn3 match_tree);
       ("i.=", fn2 int_eq);
@@ -343,8 +336,7 @@ module Definitions = struct
       ("split", fn2 split);
       ("substr", fn3 substr);
       ("readLine", fn1 readline);
-      ("write", fn1 write);
-      ("writeNewline", fn1 write_newline) ]
+      ("write", fn1 write) ]
 
   let function_arity = function
     | Function f -> (

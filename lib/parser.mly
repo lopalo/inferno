@@ -2,8 +2,8 @@
 open Core
 open Expression
 
-let wrap expression position =
-  {expr = expression; source_pos = position}
+let wrap expression ({Lexing.pos_cnum; _} as position) =
+  {expr = expression; source_pos = {position with pos_cnum = succ pos_cnum}}
 
 let make_lambda parameter result =
   Lambda {parameter = {name = parameter}; result; free_names = Names.empty}
@@ -100,7 +100,7 @@ type_spec:
   THEN; true_branch = expression;
   ELSE; false_branch = expression
   { let pos = $startpos in
-    let func = wrap (Name {name = "@bool"}) $startpos in
+    let func = wrap (Name {name = "@bool"}) pos in
     let branch_fun branch = wrap (make_lambda "_" branch) in
     let true_fun = branch_fun true_branch pos in
     let false_fun = branch_fun false_branch pos in

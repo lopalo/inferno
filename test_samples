@@ -1,1 +1,1 @@
-find samples/ -name *.ifro | sort | xargs -n1 _build/default/bin/main.exe -types
+find samples/ -maxdepth 1 -name *.ifro | sort | xargs -n1 _build/default/bin/main.exe "$@"
