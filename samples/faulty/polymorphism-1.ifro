@@ -4,9 +4,9 @@ let map = fix \map f list ->
               @list
               list
               (\_ -> null)
-              (\x tail -> cons (f (i.inc x)) (map f tail))
+              (\x tail -> : (f (i.inc x)) (map f tail))
 in
-let _ = map i.inc (cons 1 (cons -2 (cons +3 null))) in
-let _ = map f.inc (cons +1.0 (cons 2.0 (cons -3.0 null))) in
+let _ = map i.inc (: 1 (: -2 (: +3 null))) in
+let _ = map f.inc (: +1.0 (: 2.0 (: -3.0 null))) in
 ()
 

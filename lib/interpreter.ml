@@ -306,7 +306,7 @@ module Definitions = struct
       ("right", fn1 right);
       ("@or", fn3 match_or);
       ("null", null);
-      ("cons", fn2 cons);
+      (":", fn2 cons);
       ("@list", fn3 match_list);
       ("empty", empty);
       ("node", fn3 node);

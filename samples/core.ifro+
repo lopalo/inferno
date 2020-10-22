@@ -1,0 +1,65 @@
+##### common product types ####
+let _ = define Id a of a in
+let $ = \x -> unpack Id y = x in y in
+
+let _ = define Trio a b c of (And (And a b) c) in
+let t1 = \x -> unpack Trio y = x in $1 y |> $1 in
+let t2 = \x -> unpack Trio y = x in $1 y |> $2 in
+let t3 = \x -> unpack Trio y = x in $2 y in
+
+let _ = define Quad a b c d of (And (And a b) (And c d)) in
+let q1 = \x -> unpack Quad y = x in y |> $1 |> $1 in
+let q2 = \x -> unpack Quad y = x in y |> $1 |> $2 in
+let q3 = \x -> unpack Quad y = x in y |> $2 |> $1 in
+let q3 = \x -> unpack Quad y = x in y |> $2 |> $2 in
+
+let _ = define Two a of (And a a) in
+let fst = \x -> unpack Two y = x in $1 y in
+let snd = \x -> unpack Two y = x in $2 y in
+
+
+#### list functions ####
+let map = fix \map f list ->
+              @list
+              list
+              (\_ -> null)
+              (\x tail -> : (f x) (map f tail))
+in
+
+let fold = \f acc list ->
+           loop
+           (\step ->
+            let acc = $1 step in
+            let list = $2 step in
+            @list
+            list
+            (\_ -> right acc)
+            (\x tail -> left (& (f acc x) tail)))
+           (& acc list)
+in
+
+let iter = \f -> fold (\_ x -> f x) ()
+in
+
+let reverse = fold (\acc x -> : x acc) null
+in
+
+let filter = \pred list ->
+             fold (\acc x -> if pred x then : x acc else acc) null list |> reverse
+in
+
+let append = fix \append list list' ->
+                 @list
+                 list
+                 (\_ -> list')
+                 (\x tail -> : x (append tail list'))
+in
+()
+
+#### test ####
+#(: 11 (: 27 (: 45 (: 0 (: 66 null))))) |>
+#map (i.* 10) |> filter (i.> 300) |> map i.toString |>
+#append (: "foo" (: "bar" null)) |>
+#iter (\x -> concat x "\n" |> write)
+#### test ####
+#### prepend to normal *.ifro script ####

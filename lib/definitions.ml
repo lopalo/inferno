@@ -19,7 +19,7 @@ let items =
     ("right", ty "b -> (Or a b)");
     ("@or", ty "(Or a b) -> (a -> c) -> (b -> c) -> c");
     ("null", ty "(List a)");
-    ("cons", ty "a -> (List a) -> (List a)");
+    (":", ty "a -> (List a) -> (List a)");
     ("@list", ty "(List a) -> (Unit -> b) -> (a -> (List a) -> b) -> b");
     ("empty", ty "(Tree a)");
     ("node", ty "(Tree a) -> a -> (Tree a) -> (Tree a)");

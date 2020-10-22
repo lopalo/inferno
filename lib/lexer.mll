@@ -18,9 +18,9 @@ let unit = '(' whitespace* ')'
 
 let type_name = ['A'-'Z'] ['A'-'Z' 'a'-'z' '0'-'9' '_']*
 
-let name_head = ['a'-'z' '_' '$' '&' '%' '@']
+let name_head = ['a'-'z' '_' '$' '&' '%' '@' ':']
 
-let name_rest = ['A'-'Z' '0'-'9' '+' '-' '*' '.' '/' ':' '!' '?' '=' '<' '>' ''']
+let name_rest = ['A'-'Z' '0'-'9' '+' '-' '*' '.' '/' '!' '?' '=' '<' '>' ''']
 
 let name = name_head (name_head | name_rest)*
 

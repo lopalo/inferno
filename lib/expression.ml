@@ -157,7 +157,7 @@ and unpacking_pp ~with_type ppf ({type_name}, {name}, rhs, body) =
   string ppf "unpack ";
   string ppf type_name;
   space_pp ppf ();
-  (string |> if with_type then annotation_pp else using fst) ppf (name, rhs.tag);
+  string ppf name;
   string ppf " = ";
   (pp ~with_type |> box) ppf rhs;
   string ppf " in";

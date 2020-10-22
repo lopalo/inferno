@@ -1,0 +1,31 @@
+let _ = define Foldable a of (a -> b -> b) -> b -> b in
+let nullFoldable = Foldable \_f acc -> acc in
+let add = \x foldable ->
+          unpack Foldable fld = foldable in
+          (Foldable \f acc -> f x acc |> fld f)
+in
+let fold = \f acc foldable ->
+           unpack Foldable fld = foldable in
+           fld f acc
+in
+let foldList = fix \foldList f acc list ->
+                   @list
+                   list
+                   (\_ -> acc)
+                   (\x tail -> foldList f acc tail |> f x)
+in
+let fromList = \list -> Foldable \f acc -> foldList f acc list in
+let foo = \foldable ->
+          let foldable = foldable |> add "d " |> add "e " in
+          let _ = foldable |> fold concat "" |> write in
+          let _ = write "\n" in
+          let _ = foldable |> fold (\x acc -> length x |> i.+ acc) 0
+                  |> i.toString |> write
+          in write "\n"
+in
+let _ = nullFoldable |> add "1 " |> add "2 "|> foo in
+fromList (: "a " (: "b " (: "c " null))) |> foo
+
+
+
+
