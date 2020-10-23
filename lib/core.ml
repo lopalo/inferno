@@ -13,6 +13,8 @@ module TypeTag : sig
 
   val arrow : type_name
 
+  val iter_type_names : (type_name -> unit) -> t -> unit
+
   val pp : t Fmt.t
 
   val boxed_pp : t Fmt.t
@@ -28,6 +30,12 @@ end = struct
   let is_arrow = function
     | Type (name, [_; _]) when name = arrow -> true
     | _ -> false
+
+  let rec iter_type_names f = function
+    | Type (type_name, types) ->
+        f type_name;
+        List.iter (iter_type_names f) types
+    | Generic _ -> ()
 
   let rec pp ppf =
     let open Fmt in

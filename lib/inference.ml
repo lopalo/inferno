@@ -30,12 +30,11 @@ let error source_pos message = raise (Error (source_pos, message))
 let var_type v = Env.Variable (ref v)
 
 let new_unbound_var {env; level; _} =
-  Env.(var_type (Unbound (next_var_id env, level)))
+  Env.(var_type (Unbound (next_type_id env, level)))
 
-let new_generic_var {env; _} = Env.(var_type (Generic (next_var_id env)))
+let new_generic_type {env; _} = Env.(Generic (next_type_id env))
 
-let new_generic_var' {env; level; _} =
-  Env.(var_type (Generic' (next_var_id env, level)))
+let new_generic_type' {env; level; _} = Env.(Generic' (next_type_id env, level))
 
 let next_level ctx = {ctx with level = {level = ctx.level.level + 1}}
 
@@ -48,40 +47,49 @@ let tag_to_type ctx tag =
       match find_opt vars id with
       | Some ty -> ty
       | None ->
-          let ty = new_generic_var ctx in
+          let ty = new_generic_type ctx in
           add vars id ty; ty)
   in
   f tag
 
 let rec type_tag = function
   | Env.Type (op_name, types) -> Tag.Type (op_name, List.map type_tag types)
+  | Generic {type_id} -> Generic {type_parameter = "'" ^ Util.name_of_id type_id}
+  | Generic' ({type_id}, _) ->
+      Generic {type_parameter = "''" ^ Util.name_of_id type_id}
   | Variable {contents = Bound ty} -> type_tag ty
-  | Variable {contents = Unbound ({var_id}, _)} ->
-      Generic {type_parameter = Util.name_of_id var_id}
-  | Variable {contents = Generic {var_id}} ->
-      Generic {type_parameter = "'" ^ Util.name_of_id var_id}
-  | Variable {contents = Generic' ({var_id}, _)} ->
-      Generic {type_parameter = "''" ^ Util.name_of_id var_id}
+  | Variable {contents = Unbound ({type_id}, _)} ->
+      Generic {type_parameter = Util.name_of_id type_id}
 
-let check_occurrence source_pos var_id =
+let check_occurrence source_pos type_id =
   let rec f = function
     | Env.Type (_, types) -> List.iter f types
+    | Generic _ -> assert false
+    | Generic' _ -> ()
     | Variable {contents = Bound ty} -> f ty
     | Variable {contents = Unbound (id, _)} ->
-        if var_id = id then error source_pos "Recursive type"
-    | Variable {contents = Generic _} -> assert false
-    | Variable {contents = Generic' _} -> ()
+        if type_id = id then error source_pos "Recursive type"
   in
   f
 
 let adjust_levels (level : Env.level) =
   let rec f = function
     | Env.Type (_, types) -> List.iter f types
+    | Generic _ -> assert false
+    | Generic' _ -> ()
     | Variable {contents = Bound ty} -> f ty
-    | Variable ({contents = Unbound (id, level')} as var) ->
-        var := Unbound (id, {level = min level.level level'.level})
-    | Variable {contents = Generic _} -> assert false
-    | Variable {contents = Generic' _} -> ()
+    | Variable ({contents = Unbound (id, var_level)} as var) ->
+        var := Unbound (id, {level = min level.level var_level.level})
+  in
+  f
+
+let generic_type'_escapes (level : Env.level) =
+  let rec f = function
+    | Env.Type (_, types) -> List.exists f types
+    | Generic _ -> assert false
+    | Generic' (_, gen_level) -> level.level <= gen_level.level
+    | Variable {contents = Bound ty} -> f ty
+    | Variable {contents = Unbound _} -> false
   in
   f
 
@@ -89,12 +97,12 @@ let unify source_pos root_ty root_ty' =
   let rec f ty ty' =
     if ty == ty' then ()
     else
-      let unification_error () =
+      let unification_error details =
         let ty_pp ppf ty = type_tag ty |> Tag.boxed_pp ppf in
         Fmt.str
           "Cannot unify types@[<hv 1> %a and@ %a@].@ Types@[<hv 1> %a and@ \
-           %a@] are not compatible"
-          ty_pp root_ty ty_pp root_ty' ty_pp ty ty_pp ty'
+           %a@] are not compatible.@ %s"
+          ty_pp root_ty ty_pp root_ty' ty_pp ty ty_pp ty' details
         |> error source_pos
       in
       match (ty, ty') with
@@ -104,30 +112,26 @@ let unify source_pos root_ty root_ty' =
       | Variable {contents = Bound ty}, ty'
       | ty, Variable {contents = Bound ty'} ->
           f ty ty'
-      | ( (Variable {contents = Generic' (_, gen_level)} as gen_var),
-          Variable ({contents = Unbound (_, level)} as var) )
-      | ( Variable ({contents = Unbound (_, level)} as var),
-          (Variable {contents = Generic' (_, gen_level)} as gen_var) ) ->
-          if level.level > gen_level.level then var := Bound gen_var
-          else unification_error ()
       | Variable ({contents = Unbound (id, level)} as var), ty
       | ty, Variable ({contents = Unbound (id, level)} as var) ->
           check_occurrence source_pos id ty;
+          if generic_type'_escapes level ty then
+            unification_error
+              "Some generic type of rank-2 would escape its scope";
           adjust_levels level ty;
           var := Bound ty
-      | _ -> unification_error ()
+      | _ -> unification_error ""
   in
   f root_ty root_ty'
 
 let generalize (level : Env.level) =
   let rec f = function
     | Env.Type (name, types) -> Env.Type (name, List.map f types)
+    | Generic _ as ty -> ty
+    | Generic' _ as ty -> ty
     | Variable {contents = Bound ty} -> f ty
-    | Variable {contents = Unbound (id, level')} as ty ->
-        if level.level < level'.level then Variable (ref (Env.Generic id))
-        else ty
-    | Variable {contents = Generic _} as ty -> ty
-    | Variable {contents = Generic' _} as ty -> ty
+    | Variable {contents = Unbound (id, var_level)} as ty ->
+        if level.level < var_level.level then Env.Generic id else ty
   in
   f
 
@@ -136,19 +140,20 @@ let instantiate ctx ty =
   let vars = create 10 in
   let rec f = function
     | Env.Type (name, types) -> Env.Type (name, List.map f types)
-    | Variable {contents = Bound ty} -> f ty
-    | Variable {contents = Unbound _} as ty -> ty
-    | Variable {contents = Generic id} -> (
+    | Generic id -> (
       match find_opt vars id with
       | Some ty -> ty
       | None ->
           let ty = new_unbound_var ctx in
           add vars id ty; ty)
-    | Variable {contents = Generic' _} as ty -> ty
+    | Generic' _ as ty -> ty
+    | Variable {contents = Bound ty} -> f ty
+    | Variable {contents = Unbound _} as ty -> ty
   in
   f ty
 
-let instantiate_type_constructor ctx make_var {E.parameters; content; _} =
+let instantiate_type_constructor ctx make_generic_type {E.parameters; content; _}
+    =
   let open Hashtbl in
   let vars = create 10 in
   let parameters =
@@ -164,7 +169,7 @@ let instantiate_type_constructor ctx make_var {E.parameters; content; _} =
       match find_opt vars id with
       | Some ty -> ty
       | None ->
-          let ty = make_var ctx in
+          let ty = make_generic_type ctx in
           add vars id ty; ty)
   in
   (parameters, f content)
@@ -201,11 +206,21 @@ let rec infer ({scope; core_types; constructors; _} as ctx) {E.expr; source_pos}
         let scope = Scope.add name rhs.ty scope in
         let body = infer {ctx with scope} body in
         (Let {name; rhs; body}, body.ty)
-    | TypeDefinition ({name; _} as constructor) ->
-        if TypeNames.mem name core_types || Hashtbl.mem constructors name then
+    | TypeDefinition ({name; content; _} as constructor) ->
+        let is_defined type_name =
+          TypeNames.mem type_name core_types
+          || Hashtbl.mem constructors type_name
+        in
+        if is_defined name then
           fmt "Type \"%s\" is already defined" name.type_name
           |> error source_pos;
         Hashtbl.add constructors name constructor;
+        Tag.iter_type_names
+          (fun name ->
+            if not (is_defined name) then
+              fmt "Type \"%s\" is not defined" name.type_name
+              |> error source_pos)
+          content;
         let ty = Env.Type (Tag.unit, []) in
         (TypeDefinition constructor, ty)
     | Packing (type_name, content) -> (
@@ -215,7 +230,7 @@ let rec infer ({scope; core_types; constructors; _} as ctx) {E.expr; source_pos}
           |> error source_pos
       | Some constructor ->
           let type_params, content_ty =
-            instantiate_type_constructor ctx new_generic_var' constructor
+            instantiate_type_constructor ctx new_generic_type' constructor
           in
           let content = infer (next_level ctx) content in
           unify source_pos content_ty content.ty;
@@ -228,7 +243,7 @@ let rec infer ({scope; core_types; constructors; _} as ctx) {E.expr; source_pos}
           |> error source_pos
       | Some constructor ->
           let type_params, content_ty =
-            instantiate_type_constructor ctx new_generic_var constructor
+            instantiate_type_constructor ctx new_generic_type constructor
           in
           let rhs_ty = Env.Type (type_name, type_params) in
           let rhs = infer ctx rhs in
