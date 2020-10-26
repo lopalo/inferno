@@ -47,7 +47,6 @@ rule read =
   | "in" {IN}
   | "define" {DEFINE}
   | "of" {OF}
-  | "unpack" {UNPACK}
   | "if" {IF}
   | "then" {THEN}
   | "else" {ELSE}

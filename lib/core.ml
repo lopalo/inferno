@@ -6,7 +6,8 @@ type type_parameter = {type_parameter : string} [@@unboxed]
 
 module TypeTag : sig
   type t =
-    | Type of type_name * t list
+    | Constant of type_name
+    | Compound of t list
     | Generic of type_parameter
 
   val unit : type_name
@@ -20,7 +21,8 @@ module TypeTag : sig
   val boxed_pp : t Fmt.t
 end = struct
   type t =
-    | Type of type_name * t list
+    | Constant of type_name
+    | Compound of t list
     | Generic of type_parameter
 
   let unit = {type_name = "Unit"}
@@ -28,28 +30,30 @@ end = struct
   let arrow = {type_name = "->"}
 
   let is_arrow = function
-    | Type (name, [_; _]) when name = arrow -> true
+    | Compound [Constant name; _; _] when name = arrow -> true
     | _ -> false
 
   let rec iter_type_names f = function
-    | Type (type_name, types) ->
-        f type_name;
-        List.iter (iter_type_names f) types
+    | Constant type_name -> f type_name
+    | Compound types -> List.iter (iter_type_names f) types
     | Generic _ -> ()
 
   let rec pp ppf =
     let open Fmt in
     function
-    | Type ({type_name}, []) -> string ppf type_name
-    | Type (name, [parameter; result]) when name = arrow ->
+    | Constant {type_name} -> string ppf type_name
+    | Compound [Constant name; parameter; result] when name = arrow ->
         parameter_pp ppf parameter;
         sp ppf ();
         string ppf "->";
         sp ppf ();
         pp ppf result
-    | Type ({type_name}, types) ->
-        (list ~sep:sp parameter_pp |> pair ~sep:sp string |> parens)
-          ppf (type_name, types)
+    | Compound [Constant name; parameter] when name = arrow ->
+        let partial_arrow_pp ppf () =
+          parameter_pp ppf parameter; sp ppf (); string ppf "->"
+        in
+        (parens partial_arrow_pp) ppf ()
+    | Compound types -> (list ~sep:sp parameter_pp |> parens) ppf types
     | Generic {type_parameter} -> string ppf type_parameter
 
   and parameter_pp ppf ty = (if is_arrow ty then Fmt.parens pp else pp) ppf ty

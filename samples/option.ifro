@@ -1,10 +1,10 @@
 
 let fmap = \f opt ->
-           @option
+           @or
            opt
-           (\_ -> none)
-           (\x -> f x |> some)
+           (\_ -> left ())
+           (\x -> f x |> right)
 in
-let check = \s -> if string.= s "" then none else some s in
+let check = \s -> if string.= s "" then left () else right s in
 let f = \s -> s |> check |> fmap length in
 readLine () |> f |> (fmap \x -> i.toString x |> write)

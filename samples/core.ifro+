@@ -1,21 +1,21 @@
 ##### common product types ####
 let _ = define Id a of a in
-let $ = \x -> unpack Id y = x in y in
+let $ = \x -> let Id y = x in y in
 
 let _ = define Trio a b c of (And (And a b) c) in
-let t1 = \x -> unpack Trio y = x in $1 y |> $1 in
-let t2 = \x -> unpack Trio y = x in $1 y |> $2 in
-let t3 = \x -> unpack Trio y = x in $2 y in
+let t1 = \x -> let Trio y = x in $1 y |> $1 in
+let t2 = \x -> let Trio y = x in $1 y |> $2 in
+let t3 = \x -> let Trio y = x in $2 y in
 
 let _ = define Quad a b c d of (And (And a b) (And c d)) in
-let q1 = \x -> unpack Quad y = x in y |> $1 |> $1 in
-let q2 = \x -> unpack Quad y = x in y |> $1 |> $2 in
-let q3 = \x -> unpack Quad y = x in y |> $2 |> $1 in
-let q3 = \x -> unpack Quad y = x in y |> $2 |> $2 in
+let q1 = \x -> let Quad y = x in y |> $1 |> $1 in
+let q2 = \x -> let Quad y = x in y |> $1 |> $2 in
+let q3 = \x -> let Quad y = x in y |> $2 |> $1 in
+let q3 = \x -> let Quad y = x in y |> $2 |> $2 in
 
 let _ = define Two a of (And a a) in
-let fst = \x -> unpack Two y = x in $1 y in
-let snd = \x -> unpack Two y = x in $2 y in
+let fst = \x -> let Two y = x in $1 y in
+let snd = \x -> let Two y = x in $2 y in
 
 
 #### list functions ####

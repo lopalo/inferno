@@ -1,0 +1,22 @@
+let _ = define Tree a b of (Or Unit (And b (a (Tree a b)))) in
+let _ = define Two a of (And a a) in
+let empty = (Tree (left ())) in
+let node* = \x nodes -> (Tree right (& x nodes)) in
+let @tree* = \tree emptyFun nodeFun ->
+             let Tree tree = tree in
+             @or
+             tree
+             emptyFun
+             (\tree -> nodeFun ($1 tree) ($2 tree))
+in
+let node = \left x right -> node* x (Two (& left right)) in
+let _ = define Id a of a in
+let cons' = \x tail -> node* x (Id tail) in
+let intTree = node (node empty
+                         33
+                         (node empty 36 empty))
+                   40
+                   (node (cons' 60 empty)
+                         63
+                         (node empty 82 empty))
+in ()

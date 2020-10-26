@@ -1,11 +1,11 @@
 let _ = define Foldable a of (a -> b -> b) -> b -> b in
 let nullFoldable = Foldable \_f acc -> acc in
 let add = \x foldable ->
-          unpack Foldable fld = foldable in
+          let Foldable fld = foldable in
           (Foldable \f acc -> f x acc |> fld f)
 in
 let fold = \f acc foldable ->
-           unpack Foldable fld = foldable in
+           let Foldable fld = foldable in
            fld f acc
 in
 let foldList = fix \foldList f acc list ->

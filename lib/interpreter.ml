@@ -8,11 +8,9 @@ type obj =
   | Bool of bool
   | Str of string
   | Function of func
-  | Option of obj option
   | And of obj * obj
   | Or of (obj, obj) result
   | List of obj list
-  | Tree of tree
 
 and func =
   | Lambda of
@@ -24,10 +22,6 @@ and func =
   | Function3 of (obj -> obj -> obj -> obj)
 
 and scope = obj Scope.t
-
-and tree =
-  | Empty
-  | Node of tree * obj * tree
 
 exception TypeError of string
 
@@ -81,6 +75,8 @@ module Definitions = struct
 
   let fn3 f = Function (Function3 f)
 
+  let id_fn = Function (Function1 Fun.id)
+
   let rec fix func argument =
     let func' = fix func |> fn1 in
     execute_application (execute_application func func') argument
@@ -100,16 +96,6 @@ module Definitions = struct
     | Bool true -> execute_application true_func Unit
     | Bool false -> execute_application false_func Unit
     | _ -> type_error "match bool"
-
-  let none = Option None
-
-  let some x = Option (Some x)
-
-  let match_option option_val none_func some_func =
-    match option_val with
-    | Option None -> execute_application none_func Unit
-    | Option (Some x) -> execute_application some_func x
-    | _ -> type_error "match option"
 
   let and_ x y = And (x, y)
 
@@ -143,24 +129,6 @@ module Definitions = struct
     | List (x :: tail) ->
         execute_application (execute_application list_func x) (List tail)
     | _ -> type_error "match list"
-
-  let empty = Tree Empty
-
-  let node left element right =
-    match (left, right) with
-    | Tree left, Tree right -> Tree (Node (left, element, right))
-    | _ -> type_error "node"
-
-  let match_tree tree_val empty_func tree_func =
-    match tree_val with
-    | Tree Empty -> execute_application empty_func Unit
-    | Tree (Node (left, element, right)) ->
-        execute_application
-          (execute_application
-             (execute_application tree_func (Tree left))
-             element)
-          (Tree right)
-    | _ -> type_error "match tree"
 
   let int_eq i i' =
     match (i, i') with
@@ -198,7 +166,10 @@ module Definitions = struct
     | _ -> type_error "int to string"
 
   let int_of_string = function
-    | Str s -> Option (int_of_string_opt s |> Option.map (fun i -> Int i))
+    | Str s -> (
+      match int_of_string_opt s with
+      | None -> left Unit
+      | Some i -> right (Int i))
     | _ -> type_error "int of string"
 
   let int_to_float = function
@@ -241,7 +212,10 @@ module Definitions = struct
     | _ -> type_error "float to string"
 
   let float_of_string = function
-    | Str s -> Option (float_of_string_opt s |> Option.map (fun f -> Float f))
+    | Str s -> (
+      match float_of_string_opt s with
+      | None -> left Unit
+      | Some f -> right (Float f))
     | _ -> type_error "float of string"
 
   let float_to_int = function
@@ -296,9 +270,6 @@ module Definitions = struct
       ("true", true_value);
       ("false", false_value);
       ("@bool", fn3 match_bool);
-      ("none", none);
-      ("some", fn1 some);
-      ("@option", fn3 match_option);
       ("&", fn2 and_);
       ("$1", fn1 first);
       ("$2", fn1 second);
@@ -308,9 +279,6 @@ module Definitions = struct
       ("null", null);
       (":", fn2 cons);
       ("@list", fn3 match_list);
-      ("empty", empty);
-      ("node", fn3 node);
-      ("@tree", fn3 match_tree);
       ("i.=", fn2 int_eq);
       ("i.>", fn2 int_gt);
       ("i.+", fn2 int_plus);
@@ -336,7 +304,13 @@ module Definitions = struct
       ("split", fn2 split);
       ("substr", fn3 substr);
       ("readLine", fn1 readline);
-      ("write", fn1 write) ]
+      ("write", fn1 write);
+      ("@<", id_fn);
+      ("@>", id_fn);
+      ("@@<", id_fn);
+      ("@@>", id_fn);
+      ("@@@<", id_fn);
+      ("@@@>", id_fn) ]
 
   let function_arity = function
     | Function f -> (
@@ -350,7 +324,7 @@ module Definitions = struct
   let rec function_type_arity =
     let open Core.TypeTag in
     function
-    | Type (name, [_; result]) when name = arrow ->
+    | Compound [Constant name; _; result] when name = arrow ->
         succ (function_type_arity result)
     | _ -> 0
 

@@ -2,7 +2,7 @@ let _ = define Double of a -> a -> (And a a) in
 let double = Double \x y -> (& x y) in
 let doubleSwapped = Double (\x y -> (& y x)) in
 let foo = \d ->
-          unpack Double f = d in
+          let Double f = d in
           (& (f "foo" "bar" ) (f 4.4 6.6))
 in
 (& (foo double) (foo doubleSwapped))

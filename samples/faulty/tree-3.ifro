@@ -1,15 +1,35 @@
+let _ = define Tree a b of (Or Unit (And b (a (Tree a b)))) in
+let _ = define Two a of (And a a) in
+let fst = \x -> let Two y = x in $1 y in
+let snd = \x -> let Two y = x in $2 y in
+let empty = (Tree (left ())) in
+let node* = \x nodes -> (Tree right (& x nodes)) in
+let @tree* = \tree emptyFun nodeFun ->
+             let Tree tree = tree in
+             @or
+             tree
+             emptyFun
+             (\tree -> nodeFun ($1 tree) ($2 tree))
+in
+let node = \left x right -> node* x (Two (& left right)) in
+let @tree = \tree emptyFun nodeFun ->
+            @tree*
+            tree
+            emptyFun
+            (\el nodes -> nodeFun (fst nodes) el (snd nodes))
+in
 let binarySearch = \x.= x.> x ->
                    fix
                    \search tree ->
                    @tree
                    tree
-                   (\_ -> none)
-                   (\left el right ->
+                   (\_ -> left ())
+                   (\leftNode el rightNode ->
                     if x.= x el
-                    then some el
-                    else if x.> right el
-                         then search right
-                         else search left)
+                    then right el
+                    else if x.> rightNode el
+                         then search rightNode
+                         else search leftNode)
 
 in
 let intTree = node (node empty
@@ -22,7 +42,7 @@ let intTree = node (node empty
 in
 let strTree = node empty "d" empty in
 let print = \toString x ->
-             let _ = @option x (\_ -> "nothing") toString
+             let _ = @or x (\_ -> "nothing") toString
                      |> concat " "
                      |> write in x
 in

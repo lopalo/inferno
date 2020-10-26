@@ -17,13 +17,13 @@ let make_lambda parameter result =
 %token <string> STRING
 %token LAMBDA ARROW
 %token LET EQUALS IN
-%token DEFINE OF UNPACK
+%token DEFINE OF
 %token IF THEN ELSE
 %token PIPE
 %token LEFT_BRACKET RIGHT_BRACKET
 %token EOF
 
-%nonassoc LET IN DEFINE UNPACK
+%nonassoc LET IN DEFINE
 %right LAMBDA ARROW
 %nonassoc IF ELSE
 %left PIPE
@@ -69,7 +69,7 @@ expr:
       {TypeDefinition {name = {type_name}; parameters; content}}
   | type_name = TYPE_NAME; content = expression
       {Packing ({type_name}, content)}
-  | UNPACK; type_name = TYPE_NAME; name = NAME;
+  | LET; type_name = TYPE_NAME; name = NAME;
     EQUALS; rhs = expression; IN; body = expression
       {Unpacking {type_name = {type_name}; name = {name}; rhs; body}}
   | e = if_expr {e}
@@ -86,11 +86,11 @@ type_parameter:
 
 type_spec:
   | type_name = TYPE_NAME
-    {TypeTag.Type ({type_name}, [])}
+    {TypeTag.Constant {type_name}}
   | parameter = type_spec; ARROW; result = type_spec
-    {TypeTag.(Type (arrow, [parameter; result]))}
-  | LEFT_BRACKET; type_name = TYPE_NAME; types = type_spec+; RIGHT_BRACKET
-    {TypeTag.Type ({type_name}, types)}
+    {TypeTag.(Compound [Constant arrow; parameter; result])}
+  | LEFT_BRACKET; type_header = type_spec; types = type_spec+; RIGHT_BRACKET
+    {TypeTag.Compound (type_header :: types)}
   | name = type_parameter
     {TypeTag.Generic name}
   | LEFT_BRACKET; ty = type_spec; RIGHT_BRACKET {ty}

@@ -42,7 +42,8 @@ let tag_to_type ctx tag =
   let open Hashtbl in
   let vars = create 10 in
   let rec f = function
-    | Tag.Type (op_name, type_tags) -> Env.Type (op_name, List.map f type_tags)
+    | Tag.Constant name -> Env.Constant name
+    | Compound type_tags -> Compound (List.map f type_tags)
     | Generic id -> (
       match find_opt vars id with
       | Some ty -> ty
@@ -53,7 +54,8 @@ let tag_to_type ctx tag =
   f tag
 
 let rec type_tag = function
-  | Env.Type (op_name, types) -> Tag.Type (op_name, List.map type_tag types)
+  | Env.Constant name -> Tag.Constant name
+  | Compound types -> Compound (List.map type_tag types)
   | Generic {type_id} -> Generic {type_parameter = "'" ^ Util.name_of_id type_id}
   | Generic' ({type_id}, _) ->
       Generic {type_parameter = "''" ^ Util.name_of_id type_id}
@@ -63,7 +65,8 @@ let rec type_tag = function
 
 let check_occurrence source_pos type_id =
   let rec f = function
-    | Env.Type (_, types) -> List.iter f types
+    | Env.Constant _ -> ()
+    | Compound types -> List.iter f types
     | Generic _ -> assert false
     | Generic' _ -> ()
     | Variable {contents = Bound ty} -> f ty
@@ -74,7 +77,8 @@ let check_occurrence source_pos type_id =
 
 let adjust_levels (level : Env.level) =
   let rec f = function
-    | Env.Type (_, types) -> List.iter f types
+    | Env.Constant _ -> ()
+    | Compound types -> List.iter f types
     | Generic _ -> assert false
     | Generic' _ -> ()
     | Variable {contents = Bound ty} -> f ty
@@ -85,7 +89,8 @@ let adjust_levels (level : Env.level) =
 
 let generic_type'_escapes (level : Env.level) =
   let rec f = function
-    | Env.Type (_, types) -> List.exists f types
+    | Env.Constant _ -> false
+    | Compound types -> List.exists f types
     | Generic _ -> assert false
     | Generic' (_, gen_level) -> level.level <= gen_level.level
     | Variable {contents = Bound ty} -> f ty
@@ -106,8 +111,9 @@ let unify source_pos root_ty root_ty' =
         |> error source_pos
       in
       match (ty, ty') with
-      | Env.Type (name, types), Env.Type (name', types')
-        when name = name' && List.length types = List.length types' ->
+      | Env.Constant name, Env.Constant name' when name = name' -> ()
+      | Compound types, Compound types'
+        when List.length types = List.length types' ->
           List.iter2 f types types'
       | Variable {contents = Bound ty}, ty'
       | ty, Variable {contents = Bound ty'} ->
@@ -126,7 +132,8 @@ let unify source_pos root_ty root_ty' =
 
 let generalize (level : Env.level) =
   let rec f = function
-    | Env.Type (name, types) -> Env.Type (name, List.map f types)
+    | Env.Constant _ as ty -> ty
+    | Compound types -> Compound (List.map f types)
     | Generic _ as ty -> ty
     | Generic' _ as ty -> ty
     | Variable {contents = Bound ty} -> f ty
@@ -139,7 +146,8 @@ let instantiate ctx ty =
   let open Hashtbl in
   let vars = create 10 in
   let rec f = function
-    | Env.Type (name, types) -> Env.Type (name, List.map f types)
+    | Env.Constant _ as ty -> ty
+    | Compound types -> Compound (List.map f types)
     | Generic id -> (
       match find_opt vars id with
       | Some ty -> ty
@@ -164,7 +172,8 @@ let instantiate_type_constructor ctx make_generic_type {E.parameters; content; _
       parameters
   in
   let rec f = function
-    | Tag.Type (op_name, type_tags) -> Env.Type (op_name, List.map f type_tags)
+    | Tag.Constant op_name -> Env.Constant op_name
+    | Compound type_tags -> Compound (List.map f type_tags)
     | Generic id -> (
       match find_opt vars id with
       | Some ty -> ty
@@ -174,7 +183,8 @@ let instantiate_type_constructor ctx make_generic_type {E.parameters; content; _
   in
   (parameters, f content)
 
-let arrow parameter result = Env.Type (Tag.arrow, [parameter; result])
+let arrow parameter result =
+  Env.(Compound [Constant Tag.arrow; parameter; result])
 
 let rec infer ({scope; core_types; constructors; _} as ctx) {E.expr; source_pos}
     =
@@ -221,7 +231,7 @@ let rec infer ({scope; core_types; constructors; _} as ctx) {E.expr; source_pos}
               fmt "Type \"%s\" is not defined" name.type_name
               |> error source_pos)
           content;
-        let ty = Env.Type (Tag.unit, []) in
+        let ty = Env.Constant Tag.unit in
         (TypeDefinition constructor, ty)
     | Packing (type_name, content) -> (
       match Hashtbl.find_opt constructors type_name with
@@ -234,7 +244,7 @@ let rec infer ({scope; core_types; constructors; _} as ctx) {E.expr; source_pos}
           in
           let content = infer (next_level ctx) content in
           unify source_pos content_ty content.ty;
-          let ty = Env.Type (type_name, type_params) in
+          let ty = Env.Compound (Constant type_name :: type_params) in
           (Packing (type_name, content), ty))
     | Unpacking {type_name; name; rhs; body} -> (
       match Hashtbl.find_opt constructors type_name with
@@ -245,7 +255,7 @@ let rec infer ({scope; core_types; constructors; _} as ctx) {E.expr; source_pos}
           let type_params, content_ty =
             instantiate_type_constructor ctx new_generic_type constructor
           in
-          let rhs_ty = Env.Type (type_name, type_params) in
+          let rhs_ty = Env.Compound (Constant type_name :: type_params) in
           let rhs = infer ctx rhs in
           unify source_pos rhs_ty rhs.ty;
           let scope = Scope.add name content_ty scope in
@@ -279,7 +289,8 @@ let rec annotate {expr; ty; _} =
 let collect_type_names =
   let open TypeNames in
   let rec collect = function
-    | Tag.Type (type_name, type_tags) -> fold (singleton type_name) type_tags
+    | Tag.Constant type_name -> singleton type_name
+    | Compound type_tags -> fold empty type_tags
     | Generic _ -> empty
   and fold type_names type_tags =
     List.(map collect type_tags |> fold_left union type_names)

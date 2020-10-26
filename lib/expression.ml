@@ -25,7 +25,7 @@ module Value = struct
       | Bool _ -> "Bool"
       | Str _ -> "String"
     in
-    Type ({type_name}, [])
+    Constant {type_name}
 end
 
 module Names = Set.Make (struct
@@ -78,7 +78,7 @@ let flatten_application expression =
 let flatten_lambda =
   let rec f params ({expr; tag} as e) =
     match (expr, tag) with
-    | Lambda {parameter; result; _}, Type (_, tag :: _) ->
+    | Lambda {parameter; result; _}, Compound (_ :: tag :: _) ->
         f ((parameter, tag) :: params) result
     | _ -> (List.rev params, e)
   in
@@ -154,7 +154,7 @@ and type_definition_pp ppf {name; parameters; content} =
 
 and unpacking_pp ~with_type ppf ({type_name}, {name}, rhs, body) =
   let open Fmt in
-  string ppf "unpack ";
+  string ppf "let ";
   string ppf type_name;
   space_pp ppf ();
   string ppf name;

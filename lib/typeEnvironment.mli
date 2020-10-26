@@ -7,7 +7,8 @@ type 'env t
 type level = {level : int} [@@unboxed]
 
 type 'env ty =
-  | Type of Core.type_name * 'env ty list
+  | Constant of Core.type_name
+  | Compound of 'env ty list
   | Generic of 'env type_id
   | Generic' of 'env type_id * level
   | Variable of 'env var ref

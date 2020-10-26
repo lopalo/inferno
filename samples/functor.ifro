@@ -1,0 +1,27 @@
+let _ = define Functor f a of (And (f a) ((b -> c) -> (f b) -> (f c)))
+in
+let fmap = \f functor ->
+           let Functor fr = functor in
+           (Functor (& (($2 fr) f ($1 fr)) ($2 fr)))
+in
+let unFunctor = \functor -> let Functor functor = functor in ($1 functor)
+in
+let map = fix \map f list ->
+              @list list (\_ -> null) (\x tail -> : (f x) (map f tail))
+in
+let listFunctor = \list -> (Functor (& list map)) in
+let mapArrow = \f arrow ->
+               let f' = @> arrow in
+               (\x -> f' x |> f) |> @<
+in
+let arrowFunctor = \f -> (Functor (& f mapArrow)) in
+let split = \x -> (& x x) in
+let foo = \functor -> functor |> fmap (i.+ 77) |> fmap i.toString |> fmap split in
+let printResult = \x ->
+                  concat ($2 x) "\n" |> concat " " |> (concat ($1 x)) |> write
+in
+let list = (: 23 (: -72 (: 100 (: 6 null)))) |> listFunctor |> foo |> unFunctor in
+let _ = map printResult list in
+let bar = $2 |> @< |> arrowFunctor |> foo |> unFunctor |> @>
+in bar (& 1000 -1000) |> printResult
+

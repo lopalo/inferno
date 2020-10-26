@@ -3,7 +3,7 @@ let iter = \list ->
            list
            (\_ -> right ())
            (\str rest ->
-            let res = @option
+            let res = @or
                       (f.ofString str)
                       (\_ -> substr str 2 3)
                       (\f -> f.toInt f |> i.toString)

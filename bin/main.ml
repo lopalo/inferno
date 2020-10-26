@@ -81,5 +81,7 @@ let () =
             Format.pp_set_margin formatter !margin;
             expression |> Expression.pp ~with_type:!show_types formatter;
             Format.pp_print_newline formatter ()
-        | Execute -> Interpreter.execute_expression definitions expression)
+        | Execute ->
+            Interpreter.execute_expression definitions expression;
+            print_newline ())
       | None -> ())
